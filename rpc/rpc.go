@@ -1,4 +1,4 @@
-package msg
+package rpc
 
 import (
 	"bytes"
@@ -8,17 +8,17 @@ import (
 	"github.com/fxamacker/cbor/v2"
 )
 
-const MSG_SUM_BYTE_LENGTH = 8
+const RPC_SUM_BYTE_LENGTH = 8
 
-type Msg struct {
-	ReplyAddr    string
-	Type         string
-	InResponseTo []byte
-	Body         []byte
+type Rpc struct {
+	Id        []byte
+	ReplyAddr string
+	Type      string
+	Body      []byte
 }
 
-func PackMsg(m *Msg) ([]byte, error) {
-	b, err := cbor.Marshal(m)
+func PackRpc(r *Rpc) ([]byte, error) {
+	b, err := cbor.Marshal(r)
 	if err != nil {
 		return nil, err
 	}
@@ -31,14 +31,14 @@ func PackMsg(m *Msg) ([]byte, error) {
 	return buf, nil
 }
 
-func UnpackMsg(m []byte) (*Msg, error) {
-	if len(m) <= MSG_SUM_BYTE_LENGTH {
-		return nil, fmt.Errorf("msg shorter than %v bytes", MSG_SUM_BYTE_LENGTH)
+func UnpackRpc(r []byte) (*Rpc, error) {
+	if len(r) <= RPC_SUM_BYTE_LENGTH {
+		return nil, fmt.Errorf("msg shorter than %v bytes", RPC_SUM_BYTE_LENGTH)
 	}
 
 	// verify checksum
-	msgSum := m[:MSG_SUM_BYTE_LENGTH]
-	payload := m[MSG_SUM_BYTE_LENGTH:]
+	msgSum := r[:RPC_SUM_BYTE_LENGTH]
+	payload := r[RPC_SUM_BYTE_LENGTH:]
 	h := fnv.New64()
 	h.Write(payload)
 	calcSum := h.Sum(nil)
@@ -47,11 +47,11 @@ func UnpackMsg(m []byte) (*Msg, error) {
 	}
 
 	// decode payload
-	msg := &Msg{}
-	err := cbor.Unmarshal(payload, msg)
+	rpc := &Rpc{}
+	err := cbor.Unmarshal(payload, rpc)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmashal msg: %w", err)
 	}
 
-	return msg, nil
+	return rpc, nil
 }

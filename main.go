@@ -11,15 +11,15 @@ import (
 	"time"
 
 	"github.com/intob/ddb/contact"
-	"github.com/intob/ddb/msg"
+	"github.com/intob/ddb/rpc"
 )
 
 const BUFFER_SIZE_BYTES = 1024
 
 var laddr *net.UDPAddr
 
-type AddrMsg struct {
-	Msg  *msg.Msg
+type AddrRpc struct {
+	Rpc  *rpc.Rpc
 	Addr string
 }
 
@@ -68,11 +68,11 @@ func main() {
 		cancel()
 	}(cancel)
 
-	msgIn := make(chan *AddrMsg)
-	msgOut := make(chan *AddrMsg)
+	rpcIn := make(chan *AddrRpc)
+	rpcOut := make(chan *AddrRpc)
 
 	wg.Add(1)
-	go func(ctx context.Context, wg *sync.WaitGroup, msgIn chan<- *AddrMsg, msgOut <-chan *AddrMsg) {
+	go func(ctx context.Context, wg *sync.WaitGroup, rpcIn chan<- *AddrRpc, rpcOut <-chan *AddrRpc) {
 		conn, err := net.ListenUDP("udp", laddr)
 		if err != nil {
 			panic(err)
@@ -87,22 +87,22 @@ func main() {
 				fmt.Println("closing UDP connection...")
 				wg.Done()
 				return
-			case m := <-msgOut:
-				b, err := msg.PackMsg(m.Msg)
+			case r := <-rpcOut:
+				b, err := rpc.PackRpc(r.Rpc)
 				if err != nil {
 					fmt.Println(err)
 					continue
 				}
-				addr, err := net.ResolveUDPAddr("udp", m.Addr)
+				addr, err := net.ResolveUDPAddr("udp", r.Addr)
 				if err != nil {
 					fmt.Printf("failed to resolve udp addr: %s\r\n", err)
 				}
 				_, err = conn.WriteToUDP(b, addr)
 				if err != nil {
-					fmt.Printf("failed to write msg: %s\r\n", err)
+					fmt.Printf("failed to write rpc: %s\r\n", err)
 				}
 
-				fmt.Println("sent msg to ", m.Addr)
+				fmt.Println("sent rpc to ", r.Addr)
 
 			default:
 				buf := make([]byte, 1024)
@@ -112,18 +112,31 @@ func main() {
 					continue
 				}
 				fmt.Println("received: ", string(buf[:n]), " from ", raddr)
-				m, err := msg.UnpackMsg(buf[:n])
+				r, err := rpc.UnpackRpc(buf[:n])
 				if err != nil {
 					fmt.Println(err)
 					continue
 				}
-				msgIn <- &AddrMsg{
-					Msg:  m,
+				rpcIn <- &AddrRpc{
+					Rpc:  r,
 					Addr: raddr.String(),
 				}
 			}
 		}
-	}(ctx, wg, msgIn, msgOut)
+	}(ctx, wg, rpcIn, rpcOut)
+
+	wg.Add(1)
+	go func(ctx context.Context, wg *sync.WaitGroup, rpcIn <-chan *AddrRpc) {
+		select {
+		case <-ctx.Done():
+			fmt.Println("handler exiting...")
+			wg.Done()
+			return
+		case r := <-rpcIn:
+			fmt.Println("got msg!", r.Rpc.Id)
+			// send to eventbus
+		}
+	}(ctx, wg, rpcIn)
 
 	wg.Wait()
 	fmt.Println("all routines ended")
