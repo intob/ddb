@@ -1,133 +1,127 @@
 package main
 
 import (
-	"bytes"
+	"context"
 	"fmt"
-	"hash/fnv"
 	"net"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
+	"time"
 
-	"github.com/fxamacker/cbor/v2"
-	"github.com/intob/ddb/node"
-	"github.com/intob/ddb/store"
+	"github.com/intob/ddb/contact"
+	"github.com/intob/ddb/msg"
 )
+
+const BUFFER_SIZE_BYTES = 1024
 
 var laddr *net.UDPAddr
 
-func main() {
-	var err error
-	laddr, err = net.ResolveUDPAddr("udp", ":1992")
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	conn, err := net.ListenUDP("udp", laddr)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	defer conn.Close()
+type AddrMsg struct {
+	Msg *msg.Msg
+	To  *contact.Contact
+}
 
-	for {
-		buf := make([]byte, 1024)
-		n, raddr, err := conn.ReadFromUDP(buf)
-		if err != nil {
-			fmt.Println("Error: ", err)
-			continue
-		}
-		fmt.Println("Received: ", string(buf[:n]), " from ", raddr)
-
-		resp, err := handleIncoming(buf[:n])
-		if err != nil {
-			fmt.Println("Error: ", err)
-		}
-		if resp != nil {
-			packed, err := packMsg(resp)
+func init() {
+	// parse args
+	for i, arg := range os.Args {
+		if arg == "-l" && len(os.Args) > i+1 {
+			l, err := net.ResolveUDPAddr("udp", os.Args[i+1])
 			if err != nil {
-				fmt.Println("Error:", err)
-				continue
+				panic(err)
 			}
-			conn.WriteToUDP(packed, raddr)
+			laddr = l
+		}
+		if arg == "-c" && len(os.Args) > i+1 {
+			contact.Put(&contact.Contact{
+				Addr: os.Args[i+1],
+			})
+			fmt.Println("added contact", os.Args[i+1])
 		}
 	}
-}
 
-func handleIncoming(msg []byte) (*Msg, error) {
-	if len(msg) <= 16 {
-		return &Msg{
-			Type: "ERROR",
-			Body: []byte("invalid message"),
-		}, nil
-	}
-
-	// verify checksum
-	msgsum := msg[:16]
-	payload := msg[16:]
-	h := fnv.New128()
-	h.Write(payload)
-	sum := h.Sum(nil)
-	if !bytes.Equal(msgsum, sum) {
-		return &Msg{
-			Type:         "ERROR",
-			InResponseTo: msgsum,
-			Body:         []byte("payload did not match checksum"),
-		}, nil
-	}
-
-	// decode payload
-	m := &Msg{}
-	err := cbor.Unmarshal(payload, m)
-	if err != nil {
-		return &Msg{
-			Type:         "ERROR",
-			InResponseTo: msgsum,
-			Body:         []byte("failed to unmarshal payload"),
-		}, err
-	}
-
-	if node.Get(m.FromAddr) == nil {
-		node.Put(&node.Node{
-			Addr: m.FromAddr,
-		})
-		fmt.Println("added to node list:", m.FromAddr)
-	}
-
-	resp, err := handleDecodedMsg(m)
-	if resp != nil {
-		resp.FromAddr = laddr.String()
-		resp.InResponseTo = msgsum
-	}
-	return resp, err
-}
-
-func handleDecodedMsg(m *Msg) (*Msg, error) {
-	switch m.Type {
-	case "PING":
-		return &Msg{
-			Type: "ACK",
-		}, nil
-
-	case "SET":
-		kv := &store.KV{}
-		err := cbor.Unmarshal(m.Body, kv)
+	// fallback to any available port
+	if laddr == nil {
+		var err error
+		laddr, err = net.ResolveUDPAddr("udp", ":0")
 		if err != nil {
-			return nil, fmt.Errorf("failed to unmarshal SET msg: %w", err)
+			panic(err)
 		}
-		fmt.Println("set: ", kv)
-		store.Set(kv.Key, kv.Value)
-		return &Msg{
-			Type: "ACK",
-			Body: []byte("set"),
-		}, nil
-
-	case "GET":
-		v := store.Get(string(m.Body))
-		return &Msg{
-			Type: "VALUE",
-			Body: v,
-		}, nil
 	}
-	return &Msg{
-		Type: "ERROR",
-		Body: []byte("unknown message type"),
-	}, nil
+}
+
+func main() {
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	wg := &sync.WaitGroup{}
+
+	go func(cancel context.CancelFunc) {
+		switch <-sigs {
+		case syscall.SIGINT:
+			fmt.Println("\r\nreceived SIGINT")
+		case syscall.SIGTERM:
+			fmt.Println("\r\nreceived SIGTERM")
+		}
+		cancel()
+	}(cancel)
+
+	msgIn := make(chan *msg.Msg)
+	msgOut := make(chan *AddrMsg)
+
+	wg.Add(1)
+	go func(ctx context.Context, wg *sync.WaitGroup, msgIn chan<- *msg.Msg, msgOut <-chan *AddrMsg) {
+		conn, err := net.ListenUDP("udp", laddr)
+		if err != nil {
+			panic(err)
+		}
+		defer conn.Close()
+
+		fmt.Println("listening on", conn.LocalAddr().String())
+
+		for {
+			select {
+			case <-ctx.Done():
+				fmt.Println("closing UDP connection...")
+				wg.Done()
+				return
+			case m := <-msgOut:
+				b, err := msg.PackMsg(m.Msg)
+				if err != nil {
+					fmt.Println(err)
+					continue
+				}
+				addr, err := net.ResolveUDPAddr("udp", m.To.Addr)
+				if err != nil {
+					fmt.Printf("failed to resolve udp addr: %s\r\n", err)
+				}
+				_, err = conn.WriteToUDP(b, addr)
+				if err != nil {
+					fmt.Printf("failed to write msg: %s\r\n", err)
+				}
+
+				fmt.Println("sent msg to ", m.To.Addr)
+
+			default:
+				buf := make([]byte, 1024)
+				conn.SetReadDeadline(time.Now().Add(time.Second))
+				n, raddr, err := conn.ReadFromUDP(buf)
+				if err != nil {
+					continue
+				}
+				fmt.Println("received: ", string(buf[:n]), " from ", raddr)
+				m, err := msg.UnpackMsg(buf[:n])
+				if err != nil {
+					fmt.Println(err)
+					continue
+				}
+				msgIn <- m
+			}
+		}
+	}(ctx, wg, msgIn, msgOut)
+
+	wg.Wait()
+	fmt.Println("all routines ended")
 }

@@ -1,6 +1,11 @@
 package store
 
-var store map[string][]byte
+import "sync"
+
+var (
+	store map[string][]byte
+	mutex = &sync.Mutex{}
+)
 
 type KV struct {
 	Key   string
@@ -16,9 +21,13 @@ func Get(key string) []byte {
 }
 
 func Set(key string, value []byte) {
+	mutex.Lock()
 	store[key] = value
+	mutex.Unlock()
 }
 
 func Rm(key string) {
+	mutex.Lock()
 	delete(store, key)
+	mutex.Unlock()
 }
