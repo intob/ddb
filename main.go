@@ -19,8 +19,8 @@ const BUFFER_SIZE_BYTES = 1024
 var laddr *net.UDPAddr
 
 type AddrMsg struct {
-	Msg *msg.Msg
-	To  *contact.Contact
+	Msg  *msg.Msg
+	Addr string
 }
 
 func init() {
@@ -68,11 +68,11 @@ func main() {
 		cancel()
 	}(cancel)
 
-	msgIn := make(chan *msg.Msg)
+	msgIn := make(chan *AddrMsg)
 	msgOut := make(chan *AddrMsg)
 
 	wg.Add(1)
-	go func(ctx context.Context, wg *sync.WaitGroup, msgIn chan<- *msg.Msg, msgOut <-chan *AddrMsg) {
+	go func(ctx context.Context, wg *sync.WaitGroup, msgIn chan<- *AddrMsg, msgOut <-chan *AddrMsg) {
 		conn, err := net.ListenUDP("udp", laddr)
 		if err != nil {
 			panic(err)
@@ -93,7 +93,7 @@ func main() {
 					fmt.Println(err)
 					continue
 				}
-				addr, err := net.ResolveUDPAddr("udp", m.To.Addr)
+				addr, err := net.ResolveUDPAddr("udp", m.Addr)
 				if err != nil {
 					fmt.Printf("failed to resolve udp addr: %s\r\n", err)
 				}
@@ -102,7 +102,7 @@ func main() {
 					fmt.Printf("failed to write msg: %s\r\n", err)
 				}
 
-				fmt.Println("sent msg to ", m.To.Addr)
+				fmt.Println("sent msg to ", m.Addr)
 
 			default:
 				buf := make([]byte, 1024)
@@ -117,7 +117,10 @@ func main() {
 					fmt.Println(err)
 					continue
 				}
-				msgIn <- m
+				msgIn <- &AddrMsg{
+					Msg:  m,
+					Addr: raddr.String(),
+				}
 			}
 		}
 	}(ctx, wg, msgIn, msgOut)
