@@ -11,8 +11,8 @@
       "mode": "auto",
       "program": "${workspaceFolder}",
       "args": [
-        "-a", ":1993",
-        "-n", "localhost:1992"
+        "-l", ":1234",
+        "-c", "localhost:4567"
       ]
     }
   ]
