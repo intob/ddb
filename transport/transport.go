@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/intob/ddb/contact"
 	"github.com/intob/ddb/event"
 	"github.com/intob/ddb/rpc"
 )
@@ -61,7 +62,7 @@ func SendRpc(addrRpc *AddrRpc) error {
 func Listen(ctx context.Context, wg *sync.WaitGroup) {
 	conn, err := net.ListenUDP("udp", laddr)
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("failed to listen udp: %w", err))
 	}
 	defer conn.Close()
 
@@ -70,7 +71,7 @@ func Listen(ctx context.Context, wg *sync.WaitGroup) {
 	for {
 		select {
 		case <-ctx.Done():
-			fmt.Println("listener exiting...")
+			fmt.Println("listener closed")
 			wg.Done()
 			return
 
@@ -80,11 +81,10 @@ func Listen(ctx context.Context, wg *sync.WaitGroup) {
 				fmt.Println(err)
 				continue
 			}
-			n, err := conn.WriteToUDP(b, r.Addr)
+			_, err = conn.WriteToUDP(b, r.Addr)
 			if err != nil {
 				fmt.Println("failed to write rpc:", err)
 			}
-			fmt.Printf("sent %s rpc to %s (%v bytes)\r\n", r.Rpc.Type, r.Addr, n)
 
 		default:
 			buf := make([]byte, BUFFER_SIZE)
@@ -98,6 +98,7 @@ func Listen(ctx context.Context, wg *sync.WaitGroup) {
 				fmt.Println(err)
 				continue
 			}
+			addOrUpdateContact(raddr)
 			event.Publish(&event.Event{
 				Topic: event.TOPIC_RPC,
 				Rpc:   r,
@@ -105,4 +106,17 @@ func Listen(ctx context.Context, wg *sync.WaitGroup) {
 			})
 		}
 	}
+}
+
+func addOrUpdateContact(raddr *net.UDPAddr) {
+	c := contact.Get(raddr.String())
+	if c == nil {
+		// TODO: check if contact should be added
+		contact.Put(&contact.Contact{
+			Addr:     raddr,
+			LastSeen: time.Now(),
+		})
+		return
+	}
+	c.LastSeen = time.Now()
 }

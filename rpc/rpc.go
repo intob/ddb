@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	sumByteLen = 8
-	idByteLen  = 8
+	sumByteLen = 16
+	idByteLen  = 16
 	TYPE_PING  = RpcType('P')
 	TYPE_ACK   = RpcType('A')
 )
@@ -41,7 +41,7 @@ func PackRpc(r *Rpc) ([]byte, error) {
 		return nil, err
 	}
 	// calculate checksum
-	h := fnv.New64()
+	h := fnv.New128()
 	h.Write(b)
 	bh := h.Sum(nil)
 
@@ -61,7 +61,7 @@ func UnpackRpc(r []byte) (*Rpc, error) {
 	// verify checksum
 	msgSum := r[:sumByteLen]
 	payload := r[sumByteLen:]
-	h := fnv.New64()
+	h := fnv.New128()
 	h.Write(payload)
 	calcSum := h.Sum(nil)
 	if !bytes.Equal(msgSum, calcSum) {

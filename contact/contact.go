@@ -5,10 +5,12 @@ import (
 	"net"
 	"os"
 	"sync"
+	"time"
 )
 
 type Contact struct {
-	Addr *net.UDPAddr
+	Addr     *net.UDPAddr
+	LastSeen time.Time
 }
 
 var (
