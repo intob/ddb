@@ -8,10 +8,13 @@ import (
 	"github.com/fxamacker/cbor/v2"
 )
 
-const RPC_SUM_BYTE_LENGTH = 8
+const (
+	RPC_SUM_BYTE_LEN = 8
+	RPC_ID_BYTE_LEN  = 8
+)
 
 type Rpc struct {
-	Id        []byte
+	Id        [RPC_ID_BYTE_LEN]byte
 	ReplyAddr string
 	Type      string
 	Body      []byte
@@ -32,13 +35,13 @@ func PackRpc(r *Rpc) ([]byte, error) {
 }
 
 func UnpackRpc(r []byte) (*Rpc, error) {
-	if len(r) <= RPC_SUM_BYTE_LENGTH {
-		return nil, fmt.Errorf("msg shorter than %v bytes", RPC_SUM_BYTE_LENGTH)
+	if len(r) <= RPC_SUM_BYTE_LEN {
+		return nil, fmt.Errorf("msg shorter than %v bytes", RPC_SUM_BYTE_LEN)
 	}
 
 	// verify checksum
-	msgSum := r[:RPC_SUM_BYTE_LENGTH]
-	payload := r[RPC_SUM_BYTE_LENGTH:]
+	msgSum := r[:RPC_SUM_BYTE_LEN]
+	payload := r[RPC_SUM_BYTE_LEN:]
 	h := fnv.New64()
 	h.Write(payload)
 	calcSum := h.Sum(nil)

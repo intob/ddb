@@ -3,17 +3,13 @@ package store
 import "sync"
 
 var (
-	store map[string][]byte
+	store = make(map[string][]byte)
 	mutex = &sync.Mutex{}
 )
 
 type KV struct {
 	Key   string
 	Value []byte
-}
-
-func init() {
-	store = make(map[string][]byte)
 }
 
 func Get(key string) []byte {

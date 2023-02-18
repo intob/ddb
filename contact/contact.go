@@ -11,13 +11,11 @@ type Contact struct {
 }
 
 var (
-	contacts []*Contact
+	contacts = make([]*Contact, 0)
 	mutex    = &sync.Mutex{}
 )
 
 func init() {
-	contacts = make([]*Contact, 0)
-
 	for i, arg := range os.Args {
 		if arg == "--contact" && len(os.Args) > i+1 {
 			Put(&Contact{

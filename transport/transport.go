@@ -14,8 +14,8 @@ import (
 const BUFFER_SIZE_BYTES = 1024
 
 var (
-	rpcIn  chan *AddrRpc
-	rpcOut chan *AddrRpc
+	rpcIn  = make(chan *AddrRpc)
+	rpcOut = make(chan *AddrRpc)
 	laddr  *net.UDPAddr
 )
 
@@ -45,9 +45,6 @@ func init() {
 			panic(err)
 		}
 	}
-
-	rpcIn = make(chan *AddrRpc)
-	rpcOut = make(chan *AddrRpc)
 }
 
 func Laddr() string {
