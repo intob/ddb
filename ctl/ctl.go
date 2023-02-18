@@ -54,7 +54,7 @@ func init() {
 		}
 		transport.SendRpc(&transport.AddrRpc{
 			Rpc: &rpc.Rpc{
-				Type:      "PING",
+				Type:      rpc.TYPE_PING,
 				ReplyAddr: transport.Laddr(),
 			},
 			Addr: pingReq.Addr,

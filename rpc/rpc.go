@@ -9,25 +9,30 @@ import (
 )
 
 const (
-	RPC_SUM_BYTE_LEN = 8
-	RPC_ID_BYTE_LEN  = 8
+	SUM_BYTE_LEN = 8
+	ID_BYTE_LEN  = 8
+	TYPE_PING    = "PING"
 )
 
 type Rpc struct {
-	Id        [RPC_ID_BYTE_LEN]byte
+	Id        [ID_BYTE_LEN]byte
 	ReplyAddr string
 	Type      string
 	Body      []byte
 }
 
 func PackRpc(r *Rpc) ([]byte, error) {
+	// marshal payload
 	b, err := cbor.Marshal(r)
 	if err != nil {
 		return nil, err
 	}
+	// calculate checksum
 	h := fnv.New64()
 	h.Write(b)
 	bh := h.Sum(nil)
+
+	// compose checksum & payload
 	buf := make([]byte, 0)
 	buf = append(buf, bh...)
 	buf = append(buf, b...)
@@ -35,13 +40,14 @@ func PackRpc(r *Rpc) ([]byte, error) {
 }
 
 func UnpackRpc(r []byte) (*Rpc, error) {
-	if len(r) <= RPC_SUM_BYTE_LEN {
-		return nil, fmt.Errorf("msg shorter than %v bytes", RPC_SUM_BYTE_LEN)
+	// verify length
+	if len(r) <= SUM_BYTE_LEN {
+		return nil, fmt.Errorf("msg shorter than %v bytes", SUM_BYTE_LEN)
 	}
 
 	// verify checksum
-	msgSum := r[:RPC_SUM_BYTE_LEN]
-	payload := r[RPC_SUM_BYTE_LEN:]
+	msgSum := r[:SUM_BYTE_LEN]
+	payload := r[SUM_BYTE_LEN:]
 	h := fnv.New64()
 	h.Write(payload)
 	calcSum := h.Sum(nil)
@@ -49,7 +55,7 @@ func UnpackRpc(r []byte) (*Rpc, error) {
 		return nil, fmt.Errorf("msg checksum is invalid")
 	}
 
-	// decode payload
+	// unmarshal payload
 	rpc := &Rpc{}
 	err := cbor.Unmarshal(payload, rpc)
 	if err != nil {

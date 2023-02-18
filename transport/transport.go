@@ -8,6 +8,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/intob/ddb/event"
+	"github.com/intob/ddb/id"
 	"github.com/intob/ddb/rpc"
 )
 
@@ -115,8 +117,16 @@ func StartHandler(ctx context.Context, wg *sync.WaitGroup) {
 			wg.Done()
 			return
 		case r := <-rpcIn:
-			fmt.Println("got msg!", r.Rpc.Type)
-			// send to eventbus
+			evId, err := id.RandId(event.EVENT_ID_BYTE_LEN)
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+			event.Publish(&event.Event{
+				Id:    evId,
+				Topic: event.TOPIC_RPC,
+				Rpc:   r.Rpc,
+			})
 		}
 	}
 }

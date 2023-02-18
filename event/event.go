@@ -8,7 +8,7 @@ const (
 )
 
 type Event struct {
+	Id    []byte
 	Topic string
-	Id    [EVENT_ID_BYTE_LEN]byte
 	Rpc   *rpc.Rpc
 }
