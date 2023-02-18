@@ -47,10 +47,6 @@ func init() {
 	}
 }
 
-func Laddr() string {
-	return laddr.String()
-}
-
 func SendRpc(addrRpc *AddrRpc) error {
 	if addrRpc.Addr == nil {
 		return fmt.Errorf("rpc addr must not be nil")
@@ -62,14 +58,14 @@ func SendRpc(addrRpc *AddrRpc) error {
 	return nil
 }
 
-func StartListener(ctx context.Context, wg *sync.WaitGroup) {
+func Listen(ctx context.Context, wg *sync.WaitGroup) {
 	conn, err := net.ListenUDP("udp", laddr)
 	if err != nil {
 		panic(err)
 	}
 	defer conn.Close()
 
-	fmt.Println("listening on", conn.LocalAddr().String())
+	fmt.Println("listening on", conn.LocalAddr())
 
 	for {
 		select {
@@ -83,16 +79,16 @@ func StartListener(ctx context.Context, wg *sync.WaitGroup) {
 				fmt.Println(err)
 				continue
 			}
-			_, err = conn.WriteToUDP(b, r.Addr)
+			n, err := conn.WriteToUDP(b, r.Addr)
 			if err != nil {
-				fmt.Printf("failed to write rpc: %s\r\n", err)
+				fmt.Println("failed to write rpc:", err)
 			}
 
-			fmt.Println("sent rpc to ", r.Addr)
+			fmt.Printf("sent %s rpc to %s (%v bytes)\r\n", r.Rpc.Type, r.Addr, n)
 
 		default:
 			buf := make([]byte, 1024)
-			conn.SetReadDeadline(time.Now().Add(time.Second))
+			conn.SetReadDeadline(time.Now().Add(time.Millisecond))
 			n, raddr, err := conn.ReadFromUDP(buf)
 			if err != nil {
 				continue

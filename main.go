@@ -10,7 +10,6 @@ import (
 
 	"github.com/intob/ddb/ctl"
 	"github.com/intob/ddb/event"
-	"github.com/intob/ddb/id"
 	"github.com/intob/ddb/rpc"
 	"github.com/intob/ddb/transport"
 )
@@ -41,25 +40,48 @@ func main() {
 	}(cancel)
 
 	wg.Add(1)
-	go transport.StartListener(ctx, wg)
+	go transport.Listen(ctx, wg)
 
-	doTestStuff()
+	subscribeToPingAndAck()
+	subscribeToAck()
 
 	wg.Wait()
 	fmt.Println("all routines ended")
 }
 
-func doTestStuff() {
+func subscribeToPingAndAck() {
 	rcvEvents := make(chan *event.Event)
-	subId, _ := event.Subscribe(&event.Sub{
-		MatchFunc: func(event *event.Event) bool {
-			return event.Rpc.Type == rpc.TYPE_PING
+	event.Subscribe(&event.Sub{
+		MatchFunc: func(e *event.Event) bool {
+			return e.Topic == event.TOPIC_RPC && e.Rpc.Type == rpc.TYPE_PING
 		},
 		Rcvr: rcvEvents,
 	})
-	go func(rcvEvents chan *event.Event, subId *id.Id) {
+	go func(rcvEvents <-chan *event.Event) {
 		for e := range rcvEvents {
-			fmt.Println("got subscribed event", e.Rpc.Id.String())
+			fmt.Println("I got pinged", e.Rpc.Id)
+			transport.SendRpc(&transport.AddrRpc{
+				Rpc: &rpc.Rpc{
+					Id:   e.Rpc.Id,
+					Type: rpc.TYPE_ACK,
+				},
+				Addr: e.Addr,
+			})
 		}
-	}(rcvEvents, subId)
+	}(rcvEvents)
+}
+
+func subscribeToAck() {
+	rcvEvents := make(chan *event.Event)
+	event.Subscribe(&event.Sub{
+		MatchFunc: func(e *event.Event) bool {
+			return e.Topic == event.TOPIC_RPC && e.Rpc.Type == rpc.TYPE_ACK
+		},
+		Rcvr: rcvEvents,
+	})
+	go func(rcvEvents <-chan *event.Event) {
+		for e := range rcvEvents {
+			fmt.Println("my ping was acknowledged", e.Rpc.Id)
+		}
+	}(rcvEvents)
 }

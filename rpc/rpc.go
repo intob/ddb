@@ -12,13 +12,26 @@ import (
 const (
 	SUM_BYTE_LEN = 8
 	ID_BYTE_LEN  = 8
-	TYPE_PING    = "PING"
+	TYPE_PING    = 'P'
+	TYPE_ACK     = 'A'
 )
+
+type RpcType byte
 
 type Rpc struct {
 	Id   *id.Id
-	Type string
+	Type RpcType
 	Body []byte
+}
+
+func (r RpcType) String() string {
+	switch r {
+	case TYPE_PING:
+		return "PING"
+	case TYPE_ACK:
+		return "ACK"
+	}
+	return "UNKNOWN"
 }
 
 func PackRpc(r *Rpc) ([]byte, error) {
