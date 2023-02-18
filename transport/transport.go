@@ -97,7 +97,6 @@ func StartListener(ctx context.Context, wg *sync.WaitGroup) {
 			if err != nil {
 				continue
 			}
-			fmt.Println("received: ", string(buf[:n]), " from ", raddr)
 			r, err := rpc.UnpackRpc(buf[:n])
 			if err != nil {
 				fmt.Println(err)
