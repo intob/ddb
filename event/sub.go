@@ -35,6 +35,7 @@ func Subscribe(s *Sub) (*id.Id, error) {
 
 func Unsubscribe(id *id.Id) {
 	mutex.Lock()
+	close(subs[id].Rcvr)
 	delete(subs, id)
 	mutex.Unlock()
 }
@@ -44,7 +45,7 @@ func Publish(event *Event) {
 		if sub.MatchFunc(event) {
 			sub.Rcvr <- event
 			if sub.Once {
-				delete(subs, id)
+				Unsubscribe(id)
 			}
 		}
 	}

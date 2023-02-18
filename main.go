@@ -84,5 +84,6 @@ func subscribeToAck() {
 		for e := range rcvEvents {
 			fmt.Println("my ping was acknowledged", e.Rpc.Id)
 		}
+		fmt.Println("confirm channel closed")
 	}(rcvEvents)
 }
