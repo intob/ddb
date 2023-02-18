@@ -1,6 +1,8 @@
 package contact
 
 import (
+	"fmt"
+	"os"
 	"sync"
 )
 
@@ -15,6 +17,15 @@ var (
 
 func init() {
 	contacts = make([]*Contact, 0)
+
+	for i, arg := range os.Args {
+		if arg == "--contact" && len(os.Args) > i+1 {
+			Put(&Contact{
+				Addr: os.Args[i+1],
+			})
+			fmt.Println("added contact", os.Args[i+1])
+		}
+	}
 }
 
 func Put(c *Contact) {
