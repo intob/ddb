@@ -1,6 +1,8 @@
 package event
 
 import (
+	"net"
+
 	"github.com/intob/ddb/rpc"
 )
 
@@ -11,4 +13,5 @@ const (
 type Event struct {
 	Topic string
 	Rpc   *rpc.Rpc
+	Raddr *net.UDPAddr
 }

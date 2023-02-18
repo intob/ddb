@@ -43,9 +43,6 @@ func main() {
 	wg.Add(1)
 	go transport.StartListener(ctx, wg)
 
-	wg.Add(1)
-	go transport.StartHandler(ctx, wg)
-
 	doTestStuff()
 
 	wg.Wait()

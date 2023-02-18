@@ -16,10 +16,9 @@ const (
 )
 
 type Rpc struct {
-	Id        *id.Id
-	ReplyAddr string
-	Type      string
-	Body      []byte
+	Id   *id.Id
+	Type string
+	Body []byte
 }
 
 func PackRpc(r *Rpc) ([]byte, error) {

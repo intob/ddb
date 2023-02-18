@@ -15,14 +15,13 @@ import (
 const BUFFER_SIZE_BYTES = 1024
 
 var (
-	rpcIn  = make(chan *AddrRpc)
 	rpcOut = make(chan *AddrRpc)
 	laddr  *net.UDPAddr
 )
 
 type AddrRpc struct {
 	Rpc  *rpc.Rpc
-	Addr string
+	Addr *net.UDPAddr
 }
 
 func init() {
@@ -53,8 +52,8 @@ func Laddr() string {
 }
 
 func SendRpc(addrRpc *AddrRpc) error {
-	if addrRpc.Addr == "" {
-		return fmt.Errorf("rpc addr must not be blank")
+	if addrRpc.Addr == nil {
+		return fmt.Errorf("rpc addr must not be nil")
 	}
 	if addrRpc.Rpc.Id == nil {
 		return fmt.Errorf("rpc must have an id")
@@ -84,11 +83,7 @@ func StartListener(ctx context.Context, wg *sync.WaitGroup) {
 				fmt.Println(err)
 				continue
 			}
-			addr, err := net.ResolveUDPAddr("udp", r.Addr)
-			if err != nil {
-				fmt.Printf("failed to resolve udp addr: %s\r\n", err)
-			}
-			_, err = conn.WriteToUDP(b, addr)
+			_, err = conn.WriteToUDP(b, r.Addr)
 			if err != nil {
 				fmt.Printf("failed to write rpc: %s\r\n", err)
 			}
@@ -107,25 +102,10 @@ func StartListener(ctx context.Context, wg *sync.WaitGroup) {
 				fmt.Println(err)
 				continue
 			}
-			rpcIn <- &AddrRpc{
-				Rpc:  r,
-				Addr: raddr.String(),
-			}
-		}
-	}
-}
-
-func StartHandler(ctx context.Context, wg *sync.WaitGroup) {
-	for {
-		select {
-		case <-ctx.Done():
-			fmt.Println("handler exiting...")
-			wg.Done()
-			return
-		case r := <-rpcIn:
 			event.Publish(&event.Event{
 				Topic: event.TOPIC_RPC,
-				Rpc:   r.Rpc,
+				Rpc:   r,
+				Raddr: raddr,
 			})
 		}
 	}

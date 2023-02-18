@@ -4,7 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
+	"net"
 	"net/http"
 	"os"
 
@@ -44,7 +45,7 @@ func init() {
 	})
 
 	http.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
-		body, err := ioutil.ReadAll(r.Body)
+		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -55,6 +56,10 @@ func init() {
 			fmt.Println(err)
 			return
 		}
+		addr, err := net.ResolveUDPAddr("udp", pingReq.Addr)
+		if err != nil {
+			fmt.Println(err)
+		}
 		rpcId, err := id.Rand(rpc.ID_BYTE_LEN)
 		if err != nil {
 			fmt.Println(err)
@@ -62,11 +67,10 @@ func init() {
 		}
 		err = transport.SendRpc(&transport.AddrRpc{
 			Rpc: &rpc.Rpc{
-				Id:        rpcId,
-				Type:      rpc.TYPE_PING,
-				ReplyAddr: transport.Laddr(),
+				Id:   rpcId,
+				Type: rpc.TYPE_PING,
 			},
-			Addr: pingReq.Addr,
+			Addr: addr,
 		})
 		if err != nil {
 			fmt.Println("failed to send rpc:", err)
