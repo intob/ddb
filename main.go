@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/hex"
 	"fmt"
 	"os"
 	"os/signal"
@@ -55,20 +54,16 @@ func main() {
 
 func doTestStuff() {
 	rcvEvents := make(chan *event.Event)
-	subId, _ := id.RandId(event.SUB_ID_BYTE_LEN)
-	event.Subscribe(&event.Sub{
-		Id: subId,
+	subId, _ := event.Subscribe(&event.Sub{
 		MatchFunc: func(event *event.Event) bool {
-			if event.Rpc.Type == rpc.TYPE_PING {
-				return true
-			}
-			return false
+			return event.Rpc.Type == rpc.TYPE_PING
 		},
 		Rcvr: rcvEvents,
 	})
-	go func(rcvEvents chan *event.Event) {
+	go func(rcvEvents chan *event.Event, subId *id.Id) {
 		for e := range rcvEvents {
-			fmt.Println("got subscribed event!", hex.EncodeToString(e.Id))
+			fmt.Println("got subscribed event!", e.Rpc.Id.String())
+			event.Unsubscribe(subId)
 		}
-	}(rcvEvents)
+	}(rcvEvents, subId)
 }

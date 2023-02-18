@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/intob/ddb/id"
 	"github.com/intob/ddb/rpc"
 	"github.com/intob/ddb/transport"
 
@@ -46,19 +47,30 @@ func init() {
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			fmt.Println(err)
+			return
 		}
 		pingReq := &PingReq{}
 		err = json.Unmarshal(body, pingReq)
 		if err != nil {
 			fmt.Println(err)
+			return
 		}
-		transport.SendRpc(&transport.AddrRpc{
+		rpcId, err := id.Rand(rpc.ID_BYTE_LEN)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		err = transport.SendRpc(&transport.AddrRpc{
 			Rpc: &rpc.Rpc{
+				Id:        rpcId,
 				Type:      rpc.TYPE_PING,
 				ReplyAddr: transport.Laddr(),
 			},
 			Addr: pingReq.Addr,
 		})
+		if err != nil {
+			fmt.Println("failed to send rpc:", err)
+		}
 	})
 }
 

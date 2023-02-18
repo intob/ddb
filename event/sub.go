@@ -1,30 +1,45 @@
 package event
 
-import "fmt"
+import (
+	"fmt"
+	"sync"
+
+	"github.com/intob/ddb/id"
+)
 
 const (
-	SUB_ID_BYTE_LEN = 8
+	subIdByteLen = 8
 )
 
 var (
-	subs = make([]*Sub, 0)
+	subs  = make(map[*id.Id]*Sub, 0)
+	mutex = &sync.Mutex{}
 )
 
 type Sub struct {
-	Id        []byte
 	MatchFunc func(event *Event) bool
 	Rcvr      chan<- *Event
 }
 
-func init() {
-	fmt.Println("array state", subs)
+func Subscribe(s *Sub) (*id.Id, error) {
+	id, err := id.Rand(subIdByteLen)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get random sub id: %w", err)
+	}
+	mutex.Lock()
+	subs[id] = s
+	mutex.Unlock()
+	return id, nil
 }
 
-func Subscribe(s *Sub) {
-	subs = append(subs, s)
+func Unsubscribe(id *id.Id) {
+	mutex.Lock()
+	delete(subs, id)
+	mutex.Unlock()
 }
 
 func Publish(event *Event) {
+
 	for _, sub := range subs {
 		if sub.MatchFunc(event) {
 			sub.Rcvr <- event

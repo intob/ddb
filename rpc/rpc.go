@@ -6,6 +6,7 @@ import (
 	"hash/fnv"
 
 	"github.com/fxamacker/cbor/v2"
+	"github.com/intob/ddb/id"
 )
 
 const (
@@ -15,7 +16,7 @@ const (
 )
 
 type Rpc struct {
-	Id        [ID_BYTE_LEN]byte
+	Id        *id.Id
 	ReplyAddr string
 	Type      string
 	Body      []byte

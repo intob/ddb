@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/intob/ddb/event"
-	"github.com/intob/ddb/id"
 	"github.com/intob/ddb/rpc"
 )
 
@@ -53,8 +52,15 @@ func Laddr() string {
 	return laddr.String()
 }
 
-func SendRpc(addrRpc *AddrRpc) {
+func SendRpc(addrRpc *AddrRpc) error {
+	if addrRpc.Addr == "" {
+		return fmt.Errorf("rpc addr must not be blank")
+	}
+	if addrRpc.Rpc.Id == nil {
+		return fmt.Errorf("rpc must have an id")
+	}
 	rpcOut <- addrRpc
+	return nil
 }
 
 func StartListener(ctx context.Context, wg *sync.WaitGroup) {
@@ -117,13 +123,7 @@ func StartHandler(ctx context.Context, wg *sync.WaitGroup) {
 			wg.Done()
 			return
 		case r := <-rpcIn:
-			evId, err := id.RandId(event.EVENT_ID_BYTE_LEN)
-			if err != nil {
-				fmt.Println(err)
-				continue
-			}
 			event.Publish(&event.Event{
-				Id:    evId,
 				Topic: event.TOPIC_RPC,
 				Rpc:   r.Rpc,
 			})
