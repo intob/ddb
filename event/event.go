@@ -7,11 +7,13 @@ import (
 )
 
 const (
-	TOPIC_RPC = "RPC"
+	TOPIC_RPC = Topic("RPC")
 )
 
+type Topic string
+
 type Event struct {
-	Topic string
+	Topic Topic
 	Rpc   *rpc.Rpc
 	Addr  *net.UDPAddr
 }

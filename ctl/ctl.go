@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/intob/ddb/id"
 	"github.com/intob/ddb/rpc"
 	"github.com/intob/ddb/transport"
 
@@ -60,7 +59,7 @@ func init() {
 		if err != nil {
 			fmt.Println(err)
 		}
-		rpcId, err := id.Rand(rpc.ID_BYTE_LEN)
+		rpcId, err := rpc.RandId()
 		if err != nil {
 			fmt.Println(err)
 			return

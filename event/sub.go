@@ -39,7 +39,6 @@ func Unsubscribe(id *id.Id) {
 }
 
 func Publish(event *Event) {
-
 	for _, sub := range subs {
 		if sub.MatchFunc(event) {
 			sub.Rcvr <- event

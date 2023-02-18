@@ -10,10 +10,10 @@ import (
 )
 
 const (
-	SUM_BYTE_LEN = 8
-	ID_BYTE_LEN  = 8
-	TYPE_PING    = 'P'
-	TYPE_ACK     = 'A'
+	sumByteLen = 8
+	idByteLen  = 8
+	TYPE_PING  = RpcType('P')
+	TYPE_ACK   = RpcType('A')
 )
 
 type RpcType byte
@@ -54,13 +54,13 @@ func PackRpc(r *Rpc) ([]byte, error) {
 
 func UnpackRpc(r []byte) (*Rpc, error) {
 	// verify length
-	if len(r) <= SUM_BYTE_LEN {
-		return nil, fmt.Errorf("msg shorter than %v bytes", SUM_BYTE_LEN)
+	if len(r) <= sumByteLen {
+		return nil, fmt.Errorf("msg shorter than %v bytes", sumByteLen)
 	}
 
 	// verify checksum
-	msgSum := r[:SUM_BYTE_LEN]
-	payload := r[SUM_BYTE_LEN:]
+	msgSum := r[:sumByteLen]
+	payload := r[sumByteLen:]
 	h := fnv.New64()
 	h.Write(payload)
 	calcSum := h.Sum(nil)
@@ -76,4 +76,8 @@ func UnpackRpc(r []byte) (*Rpc, error) {
 	}
 
 	return rpc, nil
+}
+
+func RandId() (*id.Id, error) {
+	return id.Rand(idByteLen)
 }

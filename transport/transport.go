@@ -12,7 +12,7 @@ import (
 	"github.com/intob/ddb/rpc"
 )
 
-const BUFFER_SIZE_BYTES = 1024
+const BUFFER_SIZE = 1024
 
 var (
 	rpcOut = make(chan *AddrRpc)
@@ -73,6 +73,7 @@ func Listen(ctx context.Context, wg *sync.WaitGroup) {
 			fmt.Println("listener exiting...")
 			wg.Done()
 			return
+
 		case r := <-rpcOut:
 			b, err := rpc.PackRpc(r.Rpc)
 			if err != nil {
@@ -83,11 +84,10 @@ func Listen(ctx context.Context, wg *sync.WaitGroup) {
 			if err != nil {
 				fmt.Println("failed to write rpc:", err)
 			}
-
 			fmt.Printf("sent %s rpc to %s (%v bytes)\r\n", r.Rpc.Type, r.Addr, n)
 
 		default:
-			buf := make([]byte, 1024)
+			buf := make([]byte, BUFFER_SIZE)
 			conn.SetReadDeadline(time.Now().Add(time.Millisecond))
 			n, raddr, err := conn.ReadFromUDP(buf)
 			if err != nil {
