@@ -105,7 +105,7 @@ func StartListener(ctx context.Context, wg *sync.WaitGroup) {
 			event.Publish(&event.Event{
 				Topic: event.TOPIC_RPC,
 				Rpc:   r,
-				Raddr: raddr,
+				Addr:  raddr,
 			})
 		}
 	}

@@ -13,5 +13,5 @@ const (
 type Event struct {
 	Topic string
 	Rpc   *rpc.Rpc
-	Raddr *net.UDPAddr
+	Addr  *net.UDPAddr
 }

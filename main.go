@@ -59,8 +59,7 @@ func doTestStuff() {
 	})
 	go func(rcvEvents chan *event.Event, subId *id.Id) {
 		for e := range rcvEvents {
-			fmt.Println("got subscribed event!", e.Rpc.Id.String())
-			event.Unsubscribe(subId)
+			fmt.Println("got subscribed event", e.Rpc.Id.String())
 		}
 	}(rcvEvents, subId)
 }
