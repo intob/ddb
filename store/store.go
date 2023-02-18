@@ -1,6 +1,7 @@
 package store
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/intob/ddb/id"
@@ -11,26 +12,28 @@ const (
 )
 
 var (
-	store = make(map[*id.Id][]byte)
+	store = make(map[string][]byte)
 	mutex = &sync.Mutex{}
 )
 
-func Get(key *id.Id) []byte {
+func Get(key string) []byte {
 	return store[key]
 }
 
-func Set(key *id.Id, value []byte) {
+func Set(key string, value *[]byte) {
 	mutex.Lock()
-	store[key] = value
+	store[key] = *value
+	fmt.Println("will store:", string(*value))
 	mutex.Unlock()
 }
 
-func Rm(key *id.Id) {
+func Rm(key string) {
 	mutex.Lock()
 	delete(store, key)
 	mutex.Unlock()
 }
 
-func RandKey() (*id.Id, error) {
-	return id.Rand(keyByteLen)
+func RandKey() (string, error) {
+	key, err := id.Rand(keyByteLen)
+	return key.String(), err
 }
