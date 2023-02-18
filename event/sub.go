@@ -19,6 +19,7 @@ var (
 type Sub struct {
 	MatchFunc func(event *Event) bool
 	Rcvr      chan<- *Event
+	Once      bool
 }
 
 func Subscribe(s *Sub) (*id.Id, error) {
@@ -39,9 +40,12 @@ func Unsubscribe(id *id.Id) {
 }
 
 func Publish(event *Event) {
-	for _, sub := range subs {
+	for id, sub := range subs {
 		if sub.MatchFunc(event) {
 			sub.Rcvr <- event
+			if sub.Once {
+				delete(subs, id)
+			}
 		}
 	}
 }

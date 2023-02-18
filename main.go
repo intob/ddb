@@ -78,6 +78,7 @@ func subscribeToAck() {
 			return e.Topic == event.TOPIC_RPC && e.Rpc.Type == rpc.TYPE_ACK
 		},
 		Rcvr: rcvEvents,
+		Once: true,
 	})
 	go func(rcvEvents <-chan *event.Event) {
 		for e := range rcvEvents {
