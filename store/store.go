@@ -1,29 +1,36 @@
 package store
 
-import "sync"
+import (
+	"sync"
+
+	"github.com/intob/ddb/id"
+)
+
+const (
+	keyByteLen = 16
+)
 
 var (
-	store = make(map[string][]byte)
+	store = make(map[*id.Id][]byte)
 	mutex = &sync.Mutex{}
 )
 
-type KV struct {
-	Key   string
-	Value []byte
-}
-
-func Get(key string) []byte {
+func Get(key *id.Id) []byte {
 	return store[key]
 }
 
-func Set(key string, value []byte) {
+func Set(key *id.Id, value []byte) {
 	mutex.Lock()
 	store[key] = value
 	mutex.Unlock()
 }
 
-func Rm(key string) {
+func Rm(key *id.Id) {
 	mutex.Lock()
 	delete(store, key)
 	mutex.Unlock()
+}
+
+func RandKey() (*id.Id, error) {
+	return id.Rand(keyByteLen)
 }
