@@ -65,12 +65,12 @@ func StartListener(ctx context.Context, wg *sync.WaitGroup) {
 	}
 	defer conn.Close()
 
-	fmt.Println("transport listening for udp packets on", conn.LocalAddr().String())
+	fmt.Println("listening on", conn.LocalAddr().String())
 
 	for {
 		select {
 		case <-ctx.Done():
-			fmt.Println("closing UDP connection...")
+			fmt.Println("listener exiting...")
 			wg.Done()
 			return
 		case r := <-rpcOut:
@@ -112,13 +112,15 @@ func StartListener(ctx context.Context, wg *sync.WaitGroup) {
 }
 
 func StartHandler(ctx context.Context, wg *sync.WaitGroup) {
-	select {
-	case <-ctx.Done():
-		fmt.Println("handler exiting...")
-		wg.Done()
-		return
-	case r := <-rpcIn:
-		fmt.Println("got msg!", r.Rpc.Type)
-		// send to eventbus
+	for {
+		select {
+		case <-ctx.Done():
+			fmt.Println("handler exiting...")
+			wg.Done()
+			return
+		case r := <-rpcIn:
+			fmt.Println("got msg!", r.Rpc.Type)
+			// send to eventbus
+		}
 	}
 }
