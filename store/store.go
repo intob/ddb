@@ -1,8 +1,8 @@
 package store
 
 import (
-	"fmt"
 	"sync"
+	"time"
 
 	"github.com/intob/ddb/id"
 )
@@ -12,19 +12,32 @@ const (
 )
 
 var (
-	store = make(map[string][]byte)
+	store = make(map[string]*Entry)
 	mutex = &sync.Mutex{}
 )
 
-func Get(key string) []byte {
+type Entry struct {
+	Value    []byte
+	Modified time.Time
+}
+
+func Get(key string) *Entry {
 	return store[key]
 }
 
-func Set(key string, value *[]byte) {
+func Set(key string, value *[]byte, modified time.Time) {
 	mutex.Lock()
-	store[key] = *value
-	fmt.Println("will store:", string(*value))
-	mutex.Unlock()
+	defer mutex.Unlock()
+	e := store[key]
+	if e == nil {
+		store[key] = &Entry{
+			Value:    *value,
+			Modified: modified,
+		}
+		return
+	}
+	store[key].Value = *value
+	store[key].Modified = modified
 }
 
 func Rm(key string) {

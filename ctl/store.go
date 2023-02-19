@@ -44,9 +44,10 @@ func init() {
 			return
 		}
 
-		rpcBody, err := cbor.Marshal(&gossip.KV{
-			Key:   key,
-			Value: []byte(storeReq.Value),
+		rpcBody, err := cbor.Marshal(&gossip.StoreRpcBody{
+			Key:      key,
+			Value:    []byte(storeReq.Value),
+			Modified: time.Now(),
 		})
 		if err != nil {
 			fmt.Println(err)

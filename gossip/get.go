@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/fxamacker/cbor/v2"
 	"github.com/intob/ddb/event"
 	"github.com/intob/ddb/rpc"
 	"github.com/intob/ddb/store"
@@ -28,12 +29,20 @@ func SubscribeToGetRpc(ctx context.Context, wg *sync.WaitGroup) {
 		for e := range rcvEvents {
 			fmt.Println("rcvd get rpc")
 			key := hex.EncodeToString(e.Rpc.Body)
-			v := store.Get(key)
+			entry := store.Get(key)
+			var entryBytes []byte
+			if entry != nil {
+				entryBytes, err = cbor.Marshal(entry)
+				if err != nil {
+					fmt.Println("failed to marshal entry")
+					continue
+				}
+			}
 			err := transport.SendRpc(&transport.AddrRpc{
 				Rpc: &rpc.Rpc{
 					Id:   e.Rpc.Id,
 					Type: rpc.TYPE_ACK,
-					Body: v,
+					Body: entryBytes,
 				},
 				Addr: e.Addr,
 			})

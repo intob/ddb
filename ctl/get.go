@@ -11,7 +11,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/fxamacker/cbor/v2"
 	"github.com/intob/ddb/event"
+	"github.com/intob/ddb/gossip"
 	"github.com/intob/ddb/id"
 	"github.com/intob/ddb/rpc"
 	"github.com/intob/ddb/transport"
@@ -88,7 +90,17 @@ func subscribeToGetAck(rpcId *id.Id) {
 		select {
 		case e := <-rcvEvents:
 			fmt.Println("rcvd get ACK", e.Rpc.Id)
-			fmt.Println(string(e.Rpc.Body))
+			body := &gossip.StoreRpcBody{}
+			if e.Rpc.Body != nil {
+				err := cbor.Unmarshal(e.Rpc.Body, body)
+				if err != nil {
+					fmt.Println("failed to unmarshal rpc body:", err)
+				}
+				fmt.Println("value:", string(body.Value))
+				fmt.Println("modified:", body.Modified)
+			} else {
+				fmt.Println("no value")
+			}
 		case <-timer.C:
 			fmt.Println("timed out waiting for get ACK")
 			if !timer.Stop() {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/fxamacker/cbor/v2"
 	"github.com/intob/ddb/event"
@@ -12,9 +13,10 @@ import (
 	"github.com/intob/ddb/transport"
 )
 
-type KV struct {
-	Key   string
-	Value []byte
+type StoreRpcBody struct {
+	Key      string
+	Value    []byte
+	Modified time.Time
 }
 
 func SubscribeToStoreRpc(ctx context.Context, wg *sync.WaitGroup) {
@@ -32,13 +34,13 @@ func SubscribeToStoreRpc(ctx context.Context, wg *sync.WaitGroup) {
 	go func(rcvEvents <-chan *event.Event) {
 		for e := range rcvEvents {
 			fmt.Println("rcvd store rpc")
-			kv := &KV{}
-			err := cbor.Unmarshal(e.Rpc.Body, kv)
+			b := &StoreRpcBody{}
+			err := cbor.Unmarshal(e.Rpc.Body, b)
 			if err != nil {
 				fmt.Println("failed to unmarshal store rpc body:", err)
 				continue
 			}
-			store.Set(kv.Key, &kv.Value)
+			store.Set(b.Key, &b.Value, b.Modified)
 			err = transport.SendRpc(&transport.AddrRpc{
 				Rpc: &rpc.Rpc{
 					Id:   e.Rpc.Id,
