@@ -75,9 +75,6 @@ func subscribeToPingAck(rpcId *id.Id) {
 			fmt.Println("rcvd ping ACK", e.Rpc.Id)
 		case <-timer.C:
 			fmt.Println("timed out waiting for ping ACK")
-			if !timer.Stop() {
-				<-timer.C
-			}
 		}
 	}()
 }

@@ -1,10 +1,9 @@
-package gossip
+package subs
 
 import (
 	"context"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/fxamacker/cbor/v2"
 	"github.com/intob/ddb/event"
@@ -13,48 +12,45 @@ import (
 	"github.com/intob/ddb/transport"
 )
 
-type StoreRpcBody struct {
-	Key      string
-	Value    []byte
-	Modified time.Time
-}
-
-func SubscribeToStoreRpc(ctx context.Context, wg *sync.WaitGroup) {
+func SubscribeToGetRpc(ctx context.Context, wg *sync.WaitGroup) {
 	rcvEvents := make(chan *event.Event)
 	subId, err := event.Subscribe(&event.Sub{
 		Filter: func(e *event.Event) bool {
 			return e.Topic == event.TOPIC_RPC &&
-				e.Rpc.Type == rpc.TYPE_STORE
+				e.Rpc.Type == rpc.TYPE_GET
 		},
 		Rcvr: rcvEvents,
 	})
 	if err != nil {
 		panic(fmt.Errorf("failed to subscribe to store rpc: %w", err))
 	}
-	go func() {
+	go func(rcvEvents <-chan *event.Event) {
 		for e := range rcvEvents {
-			fmt.Println("rcvd store rpc")
-			b := &StoreRpcBody{}
-			err := cbor.Unmarshal(e.Rpc.Body, b)
-			if err != nil {
-				fmt.Println("failed to unmarshal store rpc body:", err)
-				continue
+			fmt.Println("rcvd get rpc", e.Rpc.Id)
+			entry := store.Get(string(e.Rpc.Body))
+			var entryBytes []byte
+			if entry != nil {
+				entryBytes, err = cbor.Marshal(entry)
+				if err != nil {
+					fmt.Println("failed to marshal entry")
+					continue
+				}
 			}
-			store.Set(b.Key, &b.Value, b.Modified)
-			err = transport.SendRpc(&transport.AddrRpc{
+			err := transport.SendRpc(&transport.AddrRpc{
 				Rpc: &rpc.Rpc{
 					Id:   e.Rpc.Id,
 					Type: rpc.TYPE_ACK,
+					Body: entryBytes,
 				},
 				Addr: e.Addr,
 			})
 			if err != nil {
-				fmt.Println("failed to send store ack rpc:", err)
+				fmt.Println("failed to send get ACK rpc:", err)
 			}
 		}
-		fmt.Println("SubscribeToStoreRpc done")
+		fmt.Println("SubscribeToGetRpc done")
 		wg.Done()
-	}()
+	}(rcvEvents)
 	<-ctx.Done()
 	event.Unsubscribe(subId)
 }

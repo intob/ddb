@@ -111,6 +111,6 @@ func subscribeToGetAck(rpcId *id.Id, result chan<- *store.Entry) {
 		case <-timer.C:
 			fmt.Println("timed out waiting for get ACK")
 		}
-		close(result)
+		result <- nil
 	}()
 }

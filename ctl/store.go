@@ -11,9 +11,9 @@ import (
 
 	"github.com/fxamacker/cbor/v2"
 	"github.com/intob/ddb/event"
-	"github.com/intob/ddb/gossip"
 	"github.com/intob/ddb/id"
 	"github.com/intob/ddb/rpc"
+	"github.com/intob/ddb/subs"
 	"github.com/intob/ddb/transport"
 )
 
@@ -37,7 +37,7 @@ func init() {
 			return
 		}
 
-		rpcBody, err := cbor.Marshal(&gossip.StoreRpcBody{
+		rpcBody, err := cbor.Marshal(&subs.StoreRpcBody{
 			Key:      storeReq.Key,
 			Value:    []byte(storeReq.Value),
 			Modified: time.Now(),
@@ -73,6 +73,9 @@ func init() {
 			fmt.Println("failed to send rpc:", err)
 			return
 		}
+
+		<-done
+		fmt.Println("store done")
 	})
 }
 
@@ -94,10 +97,8 @@ func subscribeToStoreAck(rpcId *id.Id, done chan<- struct{}) {
 			fmt.Println("rcvd store ACK", e.Rpc.Id)
 		case <-timer.C:
 			fmt.Println("timed out waiting for store ACK")
-			if !timer.Stop() {
-				<-timer.C
-			}
 		}
-		close(done)
+		fmt.Println("will close done chan")
+		done <- struct{}{}
 	}()
 }

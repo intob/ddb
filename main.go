@@ -10,6 +10,7 @@ import (
 
 	"github.com/intob/ddb/ctl"
 	"github.com/intob/ddb/gossip"
+	"github.com/intob/ddb/subs"
 	"github.com/intob/ddb/transport"
 )
 
@@ -42,13 +43,16 @@ func main() {
 	go transport.Listen(ctx, wg)
 
 	wg.Add(1)
-	go gossip.SubscribeToPingAndAck(ctx, wg)
+	go subs.SubscribeToPingAndAck(ctx, wg)
 
 	wg.Add(1)
-	go gossip.SubscribeToGetRpc(ctx, wg)
+	go subs.SubscribeToGetRpc(ctx, wg)
 
 	wg.Add(1)
-	go gossip.SubscribeToStoreRpc(ctx, wg)
+	go subs.SubscribeToStoreRpc(ctx, wg)
+
+	wg.Add(1)
+	go gossip.PropagateStoreRpcs(ctx, wg)
 
 	fmt.Println("all routines started")
 	wg.Wait()
