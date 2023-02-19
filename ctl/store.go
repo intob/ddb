@@ -7,7 +7,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/fxamacker/cbor/v2"
@@ -59,7 +58,8 @@ func init() {
 			return
 		}
 
-		go subscribeToStoreAck(rpcId)
+		done := make(chan struct{})
+		go subscribeToStoreAck(rpcId, done)
 
 		err = transport.SendRpc(&transport.AddrRpc{
 			Rpc: &rpc.Rpc{
@@ -76,7 +76,7 @@ func init() {
 	})
 }
 
-func subscribeToStoreAck(rpcId *id.Id) {
+func subscribeToStoreAck(rpcId *id.Id, done chan<- struct{}) {
 	rcvEvents := make(chan *event.Event)
 	event.Subscribe(&event.Sub{
 		Filter: func(e *event.Event) bool {
@@ -87,9 +87,7 @@ func subscribeToStoreAck(rpcId *id.Id) {
 		Rcvr: rcvEvents,
 		Once: true,
 	})
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	go func(rcvEvents <-chan *event.Event, wg *sync.WaitGroup) {
+	go func() {
 		timer := time.NewTimer(time.Second)
 		select {
 		case e := <-rcvEvents:
@@ -100,7 +98,6 @@ func subscribeToStoreAck(rpcId *id.Id) {
 				<-timer.C
 			}
 		}
-		wg.Done()
-	}(rcvEvents, wg)
-	wg.Wait()
+		close(done)
+	}()
 }

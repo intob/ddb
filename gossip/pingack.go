@@ -21,7 +21,7 @@ func SubscribeToPingAndAck(ctx context.Context, wg *sync.WaitGroup) {
 	if err != nil {
 		panic(fmt.Errorf("failed to subscribe to ping rpc: %w", err))
 	}
-	go func(rcvEvents <-chan *event.Event) {
+	go func() {
 		for e := range rcvEvents {
 			fmt.Println("rcvd ping", e.Rpc.Id)
 			err := transport.SendRpc(&transport.AddrRpc{
@@ -37,7 +37,7 @@ func SubscribeToPingAndAck(ctx context.Context, wg *sync.WaitGroup) {
 		}
 		fmt.Println("SubscribeToPingAndAck done")
 		wg.Done()
-	}(rcvEvents)
+	}()
 	<-ctx.Done()
 	event.Unsubscribe(subId)
 }

@@ -31,7 +31,7 @@ func SubscribeToStoreRpc(ctx context.Context, wg *sync.WaitGroup) {
 	if err != nil {
 		panic(fmt.Errorf("failed to subscribe to store rpc: %w", err))
 	}
-	go func(rcvEvents <-chan *event.Event) {
+	go func() {
 		for e := range rcvEvents {
 			fmt.Println("rcvd store rpc")
 			b := &StoreRpcBody{}
@@ -54,7 +54,7 @@ func SubscribeToStoreRpc(ctx context.Context, wg *sync.WaitGroup) {
 		}
 		fmt.Println("SubscribeToStoreRpc done")
 		wg.Done()
-	}(rcvEvents)
+	}()
 	<-ctx.Done()
 	event.Unsubscribe(subId)
 }

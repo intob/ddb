@@ -26,7 +26,7 @@ func SubscribeToGetRpc(ctx context.Context, wg *sync.WaitGroup) {
 	}
 	go func(rcvEvents <-chan *event.Event) {
 		for e := range rcvEvents {
-			fmt.Println("rcvd get rpc")
+			fmt.Println("rcvd get rpc", e.Rpc.Id)
 			entry := store.Get(string(e.Rpc.Body))
 			var entryBytes []byte
 			if entry != nil {

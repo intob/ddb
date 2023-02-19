@@ -7,20 +7,24 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/fxamacker/cbor/v2"
 	"github.com/intob/ddb/event"
-	"github.com/intob/ddb/gossip"
 	"github.com/intob/ddb/id"
 	"github.com/intob/ddb/rpc"
+	"github.com/intob/ddb/store"
 	"github.com/intob/ddb/transport"
 )
 
 type GetReq struct {
 	Addr string `json:"addr"`
 	Key  string `json:"key"`
+}
+
+type GetResp struct {
+	Value    string
+	Modified time.Time
 }
 
 func init() {
@@ -48,7 +52,8 @@ func init() {
 			return
 		}
 
-		go subscribeToGetAck(rpcId)
+		resultChan := make(chan *store.Entry)
+		go subscribeToGetAck(rpcId, resultChan)
 
 		err = transport.SendRpc(&transport.AddrRpc{
 			Rpc: &rpc.Rpc{
@@ -62,10 +67,24 @@ func init() {
 			fmt.Println("failed to send rpc:", err)
 			return
 		}
+
+		result := <-resultChan
+		if result != nil {
+			resp, err := json.MarshalIndent(&GetResp{
+				Value:    string(result.Value),
+				Modified: result.Modified,
+			}, "", "  ")
+			if err != nil {
+				fmt.Println("failed to marshal result")
+			}
+			w.Write(resp)
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
 	})
 }
 
-func subscribeToGetAck(rpcId *id.Id) {
+func subscribeToGetAck(rpcId *id.Id, result chan<- *store.Entry) {
 	rcvEvents := make(chan *event.Event)
 	event.Subscribe(&event.Sub{
 		Filter: func(e *event.Event) bool {
@@ -76,31 +95,22 @@ func subscribeToGetAck(rpcId *id.Id) {
 		Rcvr: rcvEvents,
 		Once: true,
 	})
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	go func(rcvEvents <-chan *event.Event, wg *sync.WaitGroup) {
+	go func() {
 		timer := time.NewTimer(time.Second)
 		select {
 		case e := <-rcvEvents:
 			fmt.Println("rcvd get ACK", e.Rpc.Id)
-			body := &gossip.StoreRpcBody{}
+			body := &store.Entry{}
 			if e.Rpc.Body != nil {
 				err := cbor.Unmarshal(e.Rpc.Body, body)
 				if err != nil {
 					fmt.Println("failed to unmarshal rpc body:", err)
 				}
-				fmt.Println("value:", string(body.Value))
-				fmt.Println("modified:", body.Modified)
-			} else {
-				fmt.Println("no value")
+				result <- body
 			}
 		case <-timer.C:
 			fmt.Println("timed out waiting for get ACK")
-			if !timer.Stop() {
-				<-timer.C
-			}
 		}
-		wg.Done()
-	}(rcvEvents, wg)
-	wg.Wait()
+		close(result)
+	}()
 }

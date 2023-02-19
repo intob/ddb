@@ -7,7 +7,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/intob/ddb/event"
@@ -69,9 +68,7 @@ func subscribeToPingAck(rpcId *id.Id) {
 		Rcvr: rcvEvents,
 		Once: true,
 	})
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	go func(rcvEvents <-chan *event.Event, wg *sync.WaitGroup) {
+	go func() {
 		timer := time.NewTimer(time.Second)
 		select {
 		case e := <-rcvEvents:
@@ -82,7 +79,5 @@ func subscribeToPingAck(rpcId *id.Id) {
 				<-timer.C
 			}
 		}
-		wg.Done()
-	}(rcvEvents, wg)
-	wg.Wait()
+	}()
 }
