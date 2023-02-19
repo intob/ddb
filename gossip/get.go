@@ -2,7 +2,6 @@ package gossip
 
 import (
 	"context"
-	"encoding/hex"
 	"fmt"
 	"sync"
 
@@ -28,8 +27,7 @@ func SubscribeToGetRpc(ctx context.Context, wg *sync.WaitGroup) {
 	go func(rcvEvents <-chan *event.Event) {
 		for e := range rcvEvents {
 			fmt.Println("rcvd get rpc")
-			key := hex.EncodeToString(e.Rpc.Body)
-			entry := store.Get(key)
+			entry := store.Get(string(e.Rpc.Body))
 			var entryBytes []byte
 			if entry != nil {
 				entryBytes, err = cbor.Marshal(entry)

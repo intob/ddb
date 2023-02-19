@@ -15,12 +15,12 @@ import (
 	"github.com/intob/ddb/gossip"
 	"github.com/intob/ddb/id"
 	"github.com/intob/ddb/rpc"
-	"github.com/intob/ddb/store"
 	"github.com/intob/ddb/transport"
 )
 
 type StoreReq struct {
 	Addr  string `json:"addr"`
+	Key   string `json:"key"`
 	Value string `json:"value"`
 }
 
@@ -38,14 +38,8 @@ func init() {
 			return
 		}
 
-		key, err := store.RandKey()
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-
 		rpcBody, err := cbor.Marshal(&gossip.StoreRpcBody{
-			Key:      key,
+			Key:      storeReq.Key,
 			Value:    []byte(storeReq.Value),
 			Modified: time.Now(),
 		})
@@ -79,8 +73,6 @@ func init() {
 			fmt.Println("failed to send rpc:", err)
 			return
 		}
-
-		w.Write([]byte(key))
 	})
 }
 

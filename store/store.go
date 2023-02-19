@@ -3,8 +3,6 @@ package store
 import (
 	"sync"
 	"time"
-
-	"github.com/intob/ddb/id"
 )
 
 const (
@@ -44,9 +42,4 @@ func Rm(key string) {
 	mutex.Lock()
 	delete(store, key)
 	mutex.Unlock()
-}
-
-func RandKey() (string, error) {
-	key, err := id.Rand(keyByteLen)
-	return key.String(), err
 }

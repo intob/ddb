@@ -2,7 +2,6 @@ package ctl
 
 import (
 	"bytes"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -38,12 +37,6 @@ func init() {
 			return
 		}
 
-		key, err := hex.DecodeString(getReq.Key)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-
 		addr, err := net.ResolveUDPAddr("udp", getReq.Addr)
 		if err != nil {
 			fmt.Println(err)
@@ -61,7 +54,7 @@ func init() {
 			Rpc: &rpc.Rpc{
 				Id:   rpcId,
 				Type: rpc.TYPE_GET,
-				Body: key,
+				Body: []byte(getReq.Key),
 			},
 			Addr: addr,
 		})
