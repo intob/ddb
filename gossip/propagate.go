@@ -33,9 +33,9 @@ func PropagateStoreRpcs(ctx context.Context, wg *sync.WaitGroup) {
 		Rcvr: rcvEvents,
 	})
 	if err != nil {
-		fmt.Println("failed to subscribe to rpcs:", err)
-		return
+		panic(fmt.Errorf("failed to subscribe to rpcs: %w", err))
 	}
+	fmt.Println("PropogateStoreRpcs subId:", subId)
 	go func() {
 		for e := range rcvEvents {
 			if log[e.Rpc.Id.String()] != nil {
@@ -68,7 +68,7 @@ func PropagateStoreRpcs(ctx context.Context, wg *sync.WaitGroup) {
 				if err != nil {
 					fmt.Println("failed to propagate rpc:", err)
 				}
-				fmt.Println("propagated rpc to", c.Addr.Port)
+				fmt.Println("propagated rpc to", c.Addr.String())
 			}
 		}
 		fmt.Println("PropagateStoreRpcs done")

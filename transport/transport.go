@@ -68,27 +68,26 @@ func Listen(ctx context.Context, wg *sync.WaitGroup) {
 
 	fmt.Println("listening on", conn.LocalAddr())
 
+	listenWg := &sync.WaitGroup{}
+	listenWg.Add(1)
+	go readFromConn(ctx, listenWg, conn)
+
+	listenWg.Add(1)
+	go writeToConn(ctx, listenWg, conn)
+
+	listenWg.Wait()
+	wg.Done()
+}
+
+func readFromConn(ctx context.Context, wg *sync.WaitGroup, conn *net.UDPConn) {
 	for {
 		select {
 		case <-ctx.Done():
-			fmt.Println("listener closed")
 			wg.Done()
 			return
-
-		case r := <-rpcOut:
-			b, err := rpc.PackRpc(r.Rpc)
-			if err != nil {
-				fmt.Println(err)
-				continue
-			}
-			_, err = conn.WriteToUDP(b, r.Addr)
-			if err != nil {
-				fmt.Println("failed to write rpc:", err)
-			}
-
 		default:
 			buf := make([]byte, BUFFER_SIZE)
-			conn.SetReadDeadline(time.Now().Add(time.Millisecond))
+			conn.SetReadDeadline(time.Now().Add(10 * time.Millisecond))
 			n, raddr, err := conn.ReadFromUDP(buf)
 			if err != nil {
 				continue
@@ -104,6 +103,26 @@ func Listen(ctx context.Context, wg *sync.WaitGroup) {
 				Rpc:   r,
 				Addr:  raddr,
 			})
+		}
+	}
+}
+
+func writeToConn(ctx context.Context, wg *sync.WaitGroup, conn *net.UDPConn) {
+	for {
+		select {
+		case <-ctx.Done():
+			wg.Done()
+			return
+		case r := <-rpcOut:
+			b, err := rpc.PackRpc(r.Rpc)
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+			_, err = conn.WriteToUDP(b, r.Addr)
+			if err != nil {
+				fmt.Println("failed to write rpc:", err)
+			}
 		}
 	}
 }

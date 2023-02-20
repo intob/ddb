@@ -41,12 +41,15 @@ func Unsubscribe(id *id.Id) {
 }
 
 func Publish(event *Event) {
+	mutex.Lock()
 	for id, sub := range subs {
 		if sub.Filter(event) {
 			sub.Rcvr <- event
 			if sub.Once {
-				Unsubscribe(id)
+				close(subs[id].Rcvr)
+				delete(subs, id)
 			}
 		}
 	}
+	mutex.Unlock()
 }
