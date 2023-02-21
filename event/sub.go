@@ -17,7 +17,7 @@ var (
 )
 
 type Sub struct {
-	Filter func(event *Event) bool
+	Filter func(e *Event) bool
 	Rcvr   chan<- *Event
 	Once   bool
 }

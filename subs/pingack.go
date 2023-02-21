@@ -23,7 +23,6 @@ func SubscribeToPingAndAck(ctx context.Context, wg *sync.WaitGroup) {
 	}
 	go func() {
 		for e := range rcvEvents {
-			fmt.Println("rcvd ping rpc", e.Rpc.Id)
 			err := transport.SendRpc(&transport.AddrRpc{
 				Rpc: &rpc.Rpc{
 					Id:   e.Rpc.Id,

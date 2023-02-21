@@ -7,12 +7,19 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 
+	"github.com/intob/ddb/contact"
 	"github.com/intob/ddb/ctl"
 	"github.com/intob/ddb/gossip"
+	"github.com/intob/ddb/healthcheck"
 	"github.com/intob/ddb/subs"
 	"github.com/intob/ddb/transport"
 )
+
+func init() {
+	contact.Seed(time.Now().UnixNano())
+}
 
 func main() {
 	sigs := make(chan os.Signal, 1)
@@ -53,6 +60,9 @@ func main() {
 
 	wg.Add(1)
 	go gossip.PropagateStoreRpcs(ctx, wg)
+
+	wg.Add(1)
+	go healthcheck.PingContacts(ctx, wg)
 
 	fmt.Println("all routines started")
 	wg.Wait()

@@ -1,9 +1,8 @@
 package contact
 
 import (
-	"crypto/rand"
 	"fmt"
-	"math/big"
+	"math/rand"
 	"net"
 	"os"
 	"sync"
@@ -18,6 +17,7 @@ type Contact struct {
 var (
 	contacts = make(map[string]*Contact, 0)
 	mutex    = &sync.Mutex{}
+	rnd      *rand.Rand
 )
 
 func init() {
@@ -36,6 +36,10 @@ func init() {
 	}
 }
 
+func Seed(seed int64) {
+	rnd = rand.New(rand.NewSource(seed))
+}
+
 func Put(c *Contact) {
 	mutex.Lock()
 	defer mutex.Unlock()
@@ -44,6 +48,16 @@ func Put(c *Contact) {
 
 func Get(addr string) *Contact {
 	return contacts[addr]
+}
+
+func GetAll() []*Contact {
+	list := make([]*Contact, len(contacts))
+	i := 0
+	for _, c := range contacts {
+		list[i] = c
+		i++
+	}
+	return list
 }
 
 func Rm(addr string) {
@@ -61,13 +75,8 @@ func Rand(exclude []string) (*Contact, error) {
 		return nil, fmt.Errorf("all contacts are excluded")
 	}
 	var chosen *Contact
-	maxIndex := big.NewInt(int64(len(contacts) - 1))
 	for chosen == nil {
-		nBig, err := rand.Int(rand.Reader, maxIndex)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read random number: %w", err)
-		}
-		n := int(nBig.Int64())
+		n := rnd.Intn(len(contacts) - 1)
 		i := 0
 		for _, c := range contacts {
 			if n == i {
@@ -105,4 +114,12 @@ func isExcluded(addr string, exclude []string) bool {
 		}
 	}
 	return false
+}
+
+func RandomizedList() []*Contact {
+	list := GetAll()
+	rnd.Shuffle(len(list), func(i, j int) {
+		list[i], list[j] = list[j], list[i]
+	})
+	return list
 }
