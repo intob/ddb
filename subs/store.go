@@ -31,7 +31,6 @@ func SubscribeToStoreRpc(ctx context.Context, wg *sync.WaitGroup) {
 	if err != nil {
 		panic(fmt.Errorf("failed to subscribe to store rpc: %w", err))
 	}
-	fmt.Println("SubscribeToStoreRpc subId:", subId)
 	go func() {
 		for e := range rcvEvents {
 			fmt.Println("rcvd store rpc")

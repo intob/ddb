@@ -12,9 +12,6 @@ import (
 	"github.com/intob/ddb/transport"
 )
 
-// keep log of rpcs
-// don't propagate rpcs we've already seen
-
 // number of nodes to propagate rpcs to
 const r = 2
 
@@ -35,7 +32,6 @@ func PropagateStoreRpcs(ctx context.Context, wg *sync.WaitGroup) {
 	if err != nil {
 		panic(fmt.Errorf("failed to subscribe to rpcs: %w", err))
 	}
-	fmt.Println("PropogateStoreRpcs subId:", subId)
 	go func() {
 		for e := range rcvEvents {
 			if log[e.Rpc.Id.String()] != nil {
@@ -59,6 +55,7 @@ func PropagateStoreRpcs(ctx context.Context, wg *sync.WaitGroup) {
 					break
 				}
 				contacts = append(contacts, randContact)
+				exclude = append(exclude, randContact.Addr.String())
 			}
 			for _, c := range contacts {
 				err := transport.SendRpc(&transport.AddrRpc{
