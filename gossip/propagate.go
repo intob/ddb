@@ -34,11 +34,12 @@ func PropagateStoreRpcs(ctx context.Context, wg *sync.WaitGroup) {
 	}
 	go func() {
 		for e := range rcvEvents {
-			if log[e.Rpc.Id.String()] != nil {
+			rpcIdStr := e.Rpc.Id.String()
+			if log[rpcIdStr] != nil {
 				fmt.Println("already seen, won't propagate")
 				continue
 			}
-			log[e.Rpc.Id.String()] = &LogEntry{time.Now()}
+			log[rpcIdStr] = &LogEntry{time.Now()}
 			// pick r contacts at random, other than the sender
 			// TODO: exclude all previous senders also to limit useless gossip
 			contacts := make([]*contact.Contact, 0)

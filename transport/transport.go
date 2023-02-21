@@ -13,7 +13,7 @@ import (
 	"github.com/intob/ddb/rpc"
 )
 
-const BUFFER_SIZE = 1024
+const buferSize = 1024
 
 var (
 	rpcOut = make(chan *AddrRpc)
@@ -86,13 +86,13 @@ func readFromConn(ctx context.Context, wg *sync.WaitGroup, conn *net.UDPConn) {
 			wg.Done()
 			return
 		default:
-			buf := make([]byte, BUFFER_SIZE)
+			buf := make([]byte, buferSize)
 			conn.SetReadDeadline(time.Now().Add(10 * time.Millisecond))
 			n, raddr, err := conn.ReadFromUDP(buf)
 			if err != nil {
 				continue
 			}
-			r, err := rpc.UnpackRpc(buf[:n])
+			r, err := unpackRpc(buf[:n])
 			if err != nil {
 				fmt.Println(err)
 				continue
@@ -114,7 +114,7 @@ func writeToConn(ctx context.Context, wg *sync.WaitGroup, conn *net.UDPConn) {
 			wg.Done()
 			return
 		case r := <-rpcOut:
-			b, err := rpc.PackRpc(r.Rpc)
+			b, err := packRpc(r.Rpc)
 			if err != nil {
 				fmt.Println(err)
 				continue
