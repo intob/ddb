@@ -5,12 +5,12 @@ import (
 )
 
 const (
-	idByteLen          = 16
-	TYPE_ACK           = RpcType('A')
-	TYPE_PING          = RpcType('P')
-	TYPE_STORE         = RpcType('S')
-	TYPE_GET           = RpcType('G')
-	TYPE_LIST_CONTACTS = RpcType('C')
+	idByteLen      = 16
+	TYPE_ACK       = RpcType('A')
+	TYPE_PING      = RpcType('P')
+	TYPE_STORE     = RpcType('S')
+	TYPE_GET       = RpcType('G')
+	TYPE_LIST_ADDR = RpcType('C')
 )
 
 type RpcType byte
@@ -30,6 +30,8 @@ func (r RpcType) String() string {
 		return "PING"
 	case TYPE_STORE:
 		return "STORE"
+	case TYPE_LIST_ADDR:
+		return "LIST_ADDR"
 	}
 	return "UNKNOWN"
 }
