@@ -38,7 +38,6 @@ func packRpc(r *rpc.Rpc) ([]byte, error) {
 	// append payload to checksum
 	msg = append(msg, bufBytes...)
 
-	fmt.Println(len(msg))
 	return msg, nil
 }
 
