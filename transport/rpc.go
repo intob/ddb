@@ -2,6 +2,7 @@ package transport
 
 import (
 	"bytes"
+	"compress/gzip"
 	"fmt"
 	"hash/fnv"
 
@@ -12,19 +13,30 @@ import (
 const sumByteLen = 16
 
 func packRpc(r *rpc.Rpc) ([]byte, error) {
-	// marshal payload
-	b, err := cbor.Marshal(r)
+	// marshal & gzip payload
+	buf := &bytes.Buffer{}
+	gz := gzip.NewWriter(buf)
+	defer gz.Close()
+
+	cb := cbor.NewEncoder(gz)
+	err := cb.Encode(r)
 	if err != nil {
 		return nil, err
 	}
 
+	gz.Flush()
+	bufBytes := buf.Bytes()
+
 	// calculate checksum
 	h := fnv.New128()
-	h.Write(b)
+	_, err = h.Write(bufBytes)
+	if err != nil {
+		return nil, err
+	}
 	msg := h.Sum(nil)
 
 	// append payload to checksum
-	msg = append(msg, b...)
+	msg = append(msg, bufBytes...)
 
 	fmt.Println(len(msg))
 	return msg, nil
@@ -40,17 +52,28 @@ func unpackRpc(r []byte) (*rpc.Rpc, error) {
 	msgSum := r[:sumByteLen]
 	payload := r[sumByteLen:]
 	h := fnv.New128()
-	h.Write(payload)
+	_, err := h.Write(payload)
+	if err != nil {
+		return nil, err
+	}
 	calcSum := h.Sum(nil)
 	if !bytes.Equal(msgSum, calcSum) {
 		return nil, fmt.Errorf("msg checksum is invalid")
 	}
 
-	// unmarshal payload
-	rpc := &rpc.Rpc{}
-	err := cbor.Unmarshal(payload, rpc)
+	// ungzip & unmarshal payload
+	buf := bytes.NewReader(payload)
+	gz, err := gzip.NewReader(buf)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmashal msg: %w", err)
+		return nil, err
+	}
+	defer gz.Close()
+
+	cb := cbor.NewDecoder(gz)
+	rpc := &rpc.Rpc{}
+	err = cb.Decode(rpc)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode cbor: %w", err)
 	}
 
 	return rpc, nil
