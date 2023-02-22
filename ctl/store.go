@@ -13,7 +13,6 @@ import (
 	"github.com/intob/ddb/event"
 	"github.com/intob/ddb/id"
 	"github.com/intob/ddb/rpc"
-	"github.com/intob/ddb/subs"
 	"github.com/intob/ddb/transport"
 )
 
@@ -37,7 +36,7 @@ func init() {
 			return
 		}
 
-		rpcBody, err := cbor.Marshal(&subs.StoreRpcBody{
+		rpcBody, err := cbor.Marshal(&rpc.StoreBody{
 			Key:      storeReq.Key,
 			Value:    []byte(storeReq.Value),
 			Modified: time.Now(),

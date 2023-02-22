@@ -20,9 +20,11 @@ type LogEntry struct {
 }
 
 func PropagateStoreRpcs(ctx context.Context, wg *sync.WaitGroup) {
+	defer fmt.Println("PropagateStoreRpcs done")
+	defer wg.Done()
 	log := make(map[string]*LogEntry, 0)
 	rcvEvents := make(chan *event.Event)
-	subId, err := event.Subscribe(&event.Sub{
+	_, err := event.Subscribe(&event.Sub{
 		Filter: func(e *event.Event) bool {
 			return e.Topic == event.TOPIC_RPC &&
 				e.Rpc.Type == rpc.TYPE_STORE
@@ -32,46 +34,41 @@ func PropagateStoreRpcs(ctx context.Context, wg *sync.WaitGroup) {
 	if err != nil {
 		panic(fmt.Errorf("failed to subscribe to rpcs: %w", err))
 	}
-	go func() {
-		for e := range rcvEvents {
-			rpcIdStr := e.Rpc.Id.String()
-			if log[rpcIdStr] != nil {
-				fmt.Println("already seen, won't propagate")
-				continue
-			}
-			log[rpcIdStr] = &LogEntry{time.Now()}
-			// pick r contacts at random, other than the sender
-			// TODO: exclude all previous senders also to limit useless gossip
-			contacts := make([]*contact.Contact, 0)
-			exclude := []string{e.Addr.String()}
-			for {
-				l := len(contacts)
-				if l == r || l == contact.Count()-1 {
-					break
-				}
-				// pick random contact
-				randContact, err := contact.Rand(exclude)
-				if err != nil {
-					fmt.Println("failed to pick random contact:", err)
-					break
-				}
-				contacts = append(contacts, randContact)
-				exclude = append(exclude, randContact.Addr.String())
-			}
-			for _, c := range contacts {
-				err := transport.SendRpc(&transport.AddrRpc{
-					Rpc:  e.Rpc,
-					Addr: c.Addr,
-				})
-				if err != nil {
-					fmt.Println("failed to propagate rpc:", err)
-				}
-				fmt.Println("propagated rpc to", c.Addr.String())
-			}
+	for e := range rcvEvents {
+		rpcIdStr := e.Rpc.Id.String()
+		if log[rpcIdStr] != nil {
+			fmt.Println("already seen, won't propagate")
+			continue
 		}
-		fmt.Println("PropagateStoreRpcs done")
-		wg.Done()
-	}()
-	<-ctx.Done()
-	event.Unsubscribe(subId)
+		log[rpcIdStr] = &LogEntry{time.Now()}
+		// pick r contacts at random, other than the sender
+		// TODO: don't back-propagate, exclude all previous senders
+		contacts := make([]*contact.Contact, 0)
+		exclude := []string{e.Addr.String()}
+		for {
+			l := len(contacts)
+			if l == r || l == contact.Count()-1 {
+				break
+			}
+			// pick random contact
+			randContact, err := contact.Rand(exclude)
+			if err != nil {
+				fmt.Println("failed to pick random contact:", err)
+				break
+			}
+			contacts = append(contacts, randContact)
+			exclude = append(exclude, randContact.Addr.String())
+		}
+		for _, c := range contacts {
+			err := transport.SendRpc(&transport.AddrRpc{
+				Rpc:  e.Rpc,
+				Addr: c.Addr,
+			})
+			if err != nil {
+				fmt.Println("failed to propagate rpc:", err)
+			}
+			fmt.Println("propagated rpc to", c.Addr.String())
+		}
+	}
+
 }

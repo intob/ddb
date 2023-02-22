@@ -127,15 +127,22 @@ func writeToConn(ctx context.Context, wg *sync.WaitGroup, conn *net.UDPConn) {
 	}
 }
 
-func addOrUpdateContact(raddr *net.UDPAddr) {
-	c := contact.Get(raddr.String())
-	if c == nil {
-		// TODO: check if contact should be added
-		contact.Put(&contact.Contact{
-			Addr:     raddr,
-			LastSeen: time.Now(),
-		})
+func addOrUpdateContact(addr *net.UDPAddr) {
+	// don't add own address
+	if addr.IP.String() == "127.0.0.1" && addr.Port == laddr.Port {
 		return
 	}
-	c.LastSeen = time.Now()
+	c := contact.Get(addr.String())
+	if c == nil {
+		contact.Put(&contact.Contact{
+			Addr:     addr,
+			LastSeen: time.Now(),
+		})
+		event.Publish(&event.Event{
+			Topic: event.TOPIC_CONTACT_ADDED,
+			Addr:  addr,
+		})
+	} else {
+		c.LastSeen = time.Now()
+	}
 }

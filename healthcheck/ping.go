@@ -21,11 +21,11 @@ const (
 )
 
 func PingContacts(ctx context.Context, wg *sync.WaitGroup) {
+	defer fmt.Println("PingContacts done")
+	defer wg.Done()
 	for {
 		select {
 		case <-ctx.Done():
-			fmt.Println("PingContacts done")
-			wg.Done()
 			return
 		default:
 			list := contact.RandomizedList()
@@ -60,6 +60,8 @@ func PingContacts(ctx context.Context, wg *sync.WaitGroup) {
 
 				timeout := time.NewTimer(pingTimeout)
 				select {
+				case <-ctx.Done():
+					return
 				case <-rcv:
 					fmt.Println("got ping ACK")
 					time.Sleep(contactPeriod)
@@ -68,7 +70,12 @@ func PingContacts(ctx context.Context, wg *sync.WaitGroup) {
 					fmt.Println("ping timed out, removed contact")
 				}
 			}
-			time.Sleep(roundPeriod)
+			roundTimeout := time.NewTimer(roundPeriod)
+			select {
+			case <-ctx.Done():
+				return
+			case <-roundTimeout.C:
+			}
 		}
 	}
 }

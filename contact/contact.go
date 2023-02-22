@@ -41,9 +41,12 @@ func Seed(seed int64) {
 }
 
 func Put(c *Contact) {
+	if contacts[c.Addr.String()] != nil {
+		return
+	}
 	mutex.Lock()
-	defer mutex.Unlock()
 	contacts[c.Addr.String()] = c
+	mutex.Unlock()
 }
 
 func Get(addr string) *Contact {
@@ -62,8 +65,8 @@ func GetAll() []*Contact {
 
 func Rm(addr string) {
 	mutex.Lock()
-	defer mutex.Unlock()
 	delete(contacts, addr)
+	mutex.Unlock()
 }
 
 func Count() int {

@@ -11,9 +11,11 @@ import (
 
 	"github.com/intob/ddb/contact"
 	"github.com/intob/ddb/ctl"
+	"github.com/intob/ddb/event"
 	"github.com/intob/ddb/gossip"
 	"github.com/intob/ddb/healthcheck"
-	"github.com/intob/ddb/subs"
+	"github.com/intob/ddb/listaddr"
+	"github.com/intob/ddb/rpcsub"
 	"github.com/intob/ddb/transport"
 )
 
@@ -50,19 +52,34 @@ func main() {
 	go transport.Listen(ctx, wg)
 
 	wg.Add(1)
-	go subs.SubscribeToPingAndAck(ctx, wg)
+	go rpcsub.SubscribeToPingAndAck(ctx, wg)
 
 	wg.Add(1)
-	go subs.SubscribeToGetRpc(ctx, wg)
+	go rpcsub.SubscribeToGetRpc(ctx, wg)
 
 	wg.Add(1)
-	go subs.SubscribeToStoreRpc(ctx, wg)
+	go rpcsub.SubscribeToStoreRpc(ctx, wg)
+
+	wg.Add(1)
+	go rpcsub.SubscribeToListAddrRpc(ctx, wg)
 
 	wg.Add(1)
 	go gossip.PropagateStoreRpcs(ctx, wg)
 
 	wg.Add(1)
 	go healthcheck.PingContacts(ctx, wg)
+
+	wg.Add(1)
+	go listaddr.ListAddrOfNewContacts(ctx, wg)
+
+	for _, c := range contact.GetAll() {
+		go listaddr.ListAddr(c.Addr)
+	}
+
+	go func() {
+		<-ctx.Done()
+		event.UnsubscribeAll()
+	}()
 
 	fmt.Println("all routines started")
 	wg.Wait()
