@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/intob/ddb/contact"
@@ -15,14 +14,12 @@ import (
 
 const (
 	roundPeriod       = time.Second      // time between each new round
-	contactPeriod     = time.Second      // 1 contact per contact period
+	contactPeriod     = time.Millisecond // time between each contact in the round
 	lastSeenThreshold = 10 * time.Second // will not ping if last seen recently
 	pingTimeout       = time.Second
 )
 
-func PingContacts(ctx context.Context, wg *sync.WaitGroup) {
-	defer fmt.Println("PingContacts done")
-	defer wg.Done()
+func PingContacts(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -62,12 +59,10 @@ func PingContacts(ctx context.Context, wg *sync.WaitGroup) {
 				select {
 				case <-ctx.Done():
 					return
-				case <-rcv:
-					fmt.Println("got ping ACK")
-					time.Sleep(contactPeriod)
 				case <-timeout.C:
 					contact.Rm(c.Addr.String())
-					fmt.Println("ping timed out, removed contact")
+					fmt.Println("ping timed out, removed contact", c.Addr.String())
+				case <-rcv:
 				}
 			}
 			roundTimeout := time.NewTimer(roundPeriod)

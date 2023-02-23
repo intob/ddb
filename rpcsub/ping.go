@@ -3,16 +3,13 @@ package rpcsub
 import (
 	"context"
 	"fmt"
-	"sync"
 
 	"github.com/intob/ddb/event"
 	"github.com/intob/ddb/rpc"
 	"github.com/intob/ddb/transport"
 )
 
-func SubscribeToPingAndAck(ctx context.Context, wg *sync.WaitGroup) {
-	defer fmt.Println("SubscribeToPingAndAck done")
-	defer wg.Done()
+func SubscribeToPingAndAck(ctx context.Context) {
 	rcvEvents := make(chan *event.Event)
 	_, err := event.Subscribe(&event.Sub{
 		Filter: func(e *event.Event) bool {
@@ -35,5 +32,4 @@ func SubscribeToPingAndAck(ctx context.Context, wg *sync.WaitGroup) {
 			fmt.Println("failed to send ping ack rpc:", err)
 		}
 	}
-
 }

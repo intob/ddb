@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"sync"
 	"time"
 
 	"github.com/intob/ddb/contact"
@@ -59,7 +58,7 @@ func SendRpc(addrRpc *AddrRpc) error {
 	return nil
 }
 
-func Listen(ctx context.Context, wg *sync.WaitGroup) {
+func Listen(ctx context.Context) {
 	conn, err := net.ListenUDP("udp", laddr)
 	if err != nil {
 		panic(fmt.Errorf("failed to listen udp: %w", err))
@@ -68,22 +67,15 @@ func Listen(ctx context.Context, wg *sync.WaitGroup) {
 
 	fmt.Println("listening on", conn.LocalAddr())
 
-	listenWg := &sync.WaitGroup{}
-	listenWg.Add(1)
-	go readFromConn(ctx, listenWg, conn)
-
-	listenWg.Add(1)
-	go writeToConn(ctx, listenWg, conn)
-
-	listenWg.Wait()
-	wg.Done()
+	go readFromConn(ctx, conn)
+	go writeToConn(ctx, conn)
+	<-ctx.Done()
 }
 
-func readFromConn(ctx context.Context, wg *sync.WaitGroup, conn *net.UDPConn) {
+func readFromConn(ctx context.Context, conn *net.UDPConn) {
 	for {
 		select {
 		case <-ctx.Done():
-			wg.Done()
 			return
 		default:
 			buf := make([]byte, buferSize)
@@ -107,11 +99,10 @@ func readFromConn(ctx context.Context, wg *sync.WaitGroup, conn *net.UDPConn) {
 	}
 }
 
-func writeToConn(ctx context.Context, wg *sync.WaitGroup, conn *net.UDPConn) {
+func writeToConn(ctx context.Context, conn *net.UDPConn) {
 	for {
 		select {
 		case <-ctx.Done():
-			wg.Done()
 			return
 		case r := <-rpcOut:
 			b, err := packRpc(r.Rpc)

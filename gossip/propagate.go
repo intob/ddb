@@ -13,16 +13,23 @@ import (
 )
 
 // number of nodes to propagate rpcs to
-const r = 2
+const (
+	r                = 2
+	logEntryLifetime = time.Second
+	cleanLogPeriod   = time.Second
+)
+
+var (
+	log   = make(map[string]*LogEntry, 0)
+	mutex = &sync.Mutex{}
+)
 
 type LogEntry struct {
 	Time time.Time
 }
 
-func PropagateStoreRpcs(ctx context.Context, wg *sync.WaitGroup) {
-	defer fmt.Println("PropagateStoreRpcs done")
-	defer wg.Done()
-	log := make(map[string]*LogEntry, 0)
+func PropagateStoreRpcs(ctx context.Context) {
+	go cleanLog(ctx)
 	rcvEvents := make(chan *event.Event)
 	_, err := event.Subscribe(&event.Sub{
 		Filter: func(e *event.Event) bool {
@@ -36,11 +43,14 @@ func PropagateStoreRpcs(ctx context.Context, wg *sync.WaitGroup) {
 	}
 	for e := range rcvEvents {
 		rpcIdStr := e.Rpc.Id.String()
+		mutex.Lock()
 		if log[rpcIdStr] != nil {
 			fmt.Println("already seen, won't propagate")
+			mutex.Unlock()
 			continue
 		}
 		log[rpcIdStr] = &LogEntry{time.Now()}
+		mutex.Unlock()
 		// pick r contacts at random, other than the sender
 		// TODO: don't back-propagate, exclude all previous senders
 		contacts := make([]*contact.Contact, 0)
@@ -70,5 +80,23 @@ func PropagateStoreRpcs(ctx context.Context, wg *sync.WaitGroup) {
 			fmt.Println("propagated rpc to", c.Addr.String())
 		}
 	}
+}
 
+func cleanLog(ctx context.Context) {
+	ticker := time.NewTicker(cleanLogPeriod)
+loop:
+	for {
+		select {
+		case <-ctx.Done():
+			break loop
+		case <-ticker.C:
+			mutex.Lock()
+			for key, entry := range log {
+				if entry.Time.Before(time.Now().Add(-logEntryLifetime)) {
+					delete(log, key)
+				}
+			}
+			mutex.Unlock()
+		}
+	}
 }

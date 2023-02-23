@@ -3,7 +3,6 @@ package rpcsub
 import (
 	"context"
 	"fmt"
-	"sync"
 
 	"github.com/fxamacker/cbor/v2"
 	"github.com/intob/ddb/contact"
@@ -12,9 +11,7 @@ import (
 	"github.com/intob/ddb/transport"
 )
 
-func SubscribeToListAddrRpc(ctx context.Context, wg *sync.WaitGroup) {
-	defer fmt.Println("SubscribeToListAddrRpc done")
-	defer wg.Done()
+func SubscribeToListAddrRpc(ctx context.Context) {
 	rcv := make(chan *event.Event)
 	_, err := event.Subscribe(&event.Sub{
 		Filter: func(e *event.Event) bool {

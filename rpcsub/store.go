@@ -3,7 +3,6 @@ package rpcsub
 import (
 	"context"
 	"fmt"
-	"sync"
 
 	"github.com/fxamacker/cbor/v2"
 	"github.com/intob/ddb/event"
@@ -12,9 +11,7 @@ import (
 	"github.com/intob/ddb/transport"
 )
 
-func SubscribeToStoreRpc(ctx context.Context, wg *sync.WaitGroup) {
-	defer fmt.Println("SubscribeToStoreRpc done")
-	defer wg.Done()
+func SubscribeToStoreRpc(ctx context.Context) {
 	rcvEvents := make(chan *event.Event)
 	_, err := event.Subscribe(&event.Sub{
 		Filter: func(e *event.Event) bool {
@@ -46,5 +43,4 @@ func SubscribeToStoreRpc(ctx context.Context, wg *sync.WaitGroup) {
 			fmt.Println("failed to send store ack rpc:", err)
 		}
 	}
-
 }

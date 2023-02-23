@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"sync"
 	"time"
 
 	"github.com/fxamacker/cbor/v2"
@@ -15,9 +14,7 @@ import (
 	"github.com/intob/ddb/transport"
 )
 
-func ListAddrOfNewContacts(ctx context.Context, wg *sync.WaitGroup) {
-	defer fmt.Println("ListAddrOfNewContacts done")
-	defer wg.Done()
+func SendListAddrRpcToNewContacts(ctx context.Context) {
 	rcv := make(chan *event.Event)
 	event.Subscribe(&event.Sub{
 		Filter: func(e *event.Event) bool {
@@ -30,12 +27,12 @@ func ListAddrOfNewContacts(ctx context.Context, wg *sync.WaitGroup) {
 		case <-ctx.Done():
 			return
 		case contactAdded := <-rcv:
-			ListAddr(contactAdded.Addr)
+			ListAddr(ctx, contactAdded.Addr)
 		}
 	}
 }
 
-func ListAddr(addr *net.UDPAddr) {
+func ListAddr(ctx context.Context, addr *net.UDPAddr) {
 	rpcId, err := rpc.RandId()
 	if err != nil {
 		fmt.Println("failed to get rand rpc id:", err)
@@ -62,9 +59,13 @@ func ListAddr(addr *net.UDPAddr) {
 		handleListAddrResp(r)
 	case <-timeout.C:
 		fmt.Println("list addr rpc timed out")
+		break
+	case <-ctx.Done():
+		break
 	}
 }
 
+// TODO: handle nil pointer dereference on exit
 func handleListAddrResp(e *event.Event) error {
 	listAddr := &rpc.ListAddrBody{}
 	err := cbor.Unmarshal(e.Rpc.Body, listAddr)

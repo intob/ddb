@@ -1,13 +1,17 @@
 package rpc
 
-import "time"
+import (
+	"time"
+)
 
-type StoreBody struct {
-	Key      string
-	Value    []byte
-	Modified time.Time
-}
+type (
+	StoreBody struct {
+		Key      string
+		Value    []byte
+		Modified time.Time
+	}
 
-type ListAddrBody struct {
-	AddrList []string
-}
+	ListAddrBody struct {
+		AddrList []string
+	}
+)

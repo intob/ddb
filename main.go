@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 	"time"
 
@@ -28,7 +27,6 @@ func main() {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	wg := &sync.WaitGroup{}
 
 	go func(ctx context.Context, cancel context.CancelFunc) {
 		err := ctl.Start()
@@ -48,32 +46,17 @@ func main() {
 		cancel()
 	}(cancel)
 
-	wg.Add(1)
-	go transport.Listen(ctx, wg)
-
-	wg.Add(1)
-	go rpcsub.SubscribeToPingAndAck(ctx, wg)
-
-	wg.Add(1)
-	go rpcsub.SubscribeToGetRpc(ctx, wg)
-
-	wg.Add(1)
-	go rpcsub.SubscribeToStoreRpc(ctx, wg)
-
-	wg.Add(1)
-	go rpcsub.SubscribeToListAddrRpc(ctx, wg)
-
-	wg.Add(1)
-	go gossip.PropagateStoreRpcs(ctx, wg)
-
-	wg.Add(1)
-	go healthcheck.PingContacts(ctx, wg)
-
-	wg.Add(1)
-	go listaddr.ListAddrOfNewContacts(ctx, wg)
+	go transport.Listen(ctx)
+	go rpcsub.SubscribeToPingAndAck(ctx)
+	go rpcsub.SubscribeToGetRpc(ctx)
+	go rpcsub.SubscribeToStoreRpc(ctx)
+	go rpcsub.SubscribeToListAddrRpc(ctx)
+	go gossip.PropagateStoreRpcs(ctx)
+	go healthcheck.PingContacts(ctx)
+	go listaddr.SendListAddrRpcToNewContacts(ctx)
 
 	for _, c := range contact.GetAll() {
-		go listaddr.ListAddr(c.Addr)
+		go listaddr.ListAddr(ctx, c.Addr)
 	}
 
 	go func() {
@@ -82,6 +65,6 @@ func main() {
 	}()
 
 	fmt.Println("all routines started")
-	wg.Wait()
+	<-ctx.Done()
 	fmt.Println("all routines ended")
 }
