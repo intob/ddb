@@ -10,8 +10,9 @@ import (
 )
 
 type Contact struct {
-	Addr     *net.UDPAddr
-	LastSeen time.Time
+	Addr      *net.UDPAddr
+	LastSeen  time.Time
+	RoundTrip time.Duration
 }
 
 var (
@@ -73,6 +74,7 @@ func Count() int {
 	return len(contacts)
 }
 
+// T
 func Rand(exclude []string) (*Contact, error) {
 	if len(exclude) >= len(contacts) {
 		return nil, fmt.Errorf("all contacts excluded")
