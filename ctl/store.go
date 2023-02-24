@@ -79,20 +79,15 @@ func init() {
 }
 
 func subscribeToStoreAck(rpcId *id.Id, done chan<- struct{}) {
-	rcvEvents := make(chan *event.Event)
-	event.Subscribe(&event.Sub{
-		Filter: func(e *event.Event) bool {
-			return e.Topic == event.TOPIC_RPC &&
-				e.Rpc.Type == rpc.TYPE_ACK &&
-				bytes.Equal(*e.Rpc.Id, *rpcId)
-		},
-		Rcvr: rcvEvents,
-		Once: true,
+	ev, _ := event.SubscribeOnce(func(e *event.Event) bool {
+		return e.Topic == event.TOPIC_RPC &&
+			e.Rpc.Type == rpc.TYPE_ACK &&
+			bytes.Equal(*e.Rpc.Id, *rpcId)
 	})
 	go func() {
 		timer := time.NewTimer(time.Second)
 		select {
-		case e := <-rcvEvents:
+		case e := <-ev:
 			fmt.Println("rcvd store ACK", e.Rpc.Id)
 		case <-timer.C:
 			fmt.Println("timed out waiting for store ACK")

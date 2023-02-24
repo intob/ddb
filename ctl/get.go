@@ -85,20 +85,15 @@ func init() {
 }
 
 func subscribeToGetAck(rpcId *id.Id, result chan<- *store.Entry) {
-	rcvEvents := make(chan *event.Event)
-	event.Subscribe(&event.Sub{
-		Filter: func(e *event.Event) bool {
-			return e.Topic == event.TOPIC_RPC &&
-				e.Rpc.Type == rpc.TYPE_ACK &&
-				bytes.Equal(*e.Rpc.Id, *rpcId)
-		},
-		Rcvr: rcvEvents,
-		Once: true,
+	ev, _ := event.SubscribeOnce(func(e *event.Event) bool {
+		return e.Topic == event.TOPIC_RPC &&
+			e.Rpc.Type == rpc.TYPE_ACK &&
+			bytes.Equal(*e.Rpc.Id, *rpcId)
 	})
 	go func() {
 		timer := time.NewTimer(time.Second)
 		select {
-		case e := <-rcvEvents:
+		case e := <-ev:
 			fmt.Println("rcvd get ACK", e.Rpc.Id)
 			body := &store.Entry{}
 			if e.Rpc.Body != nil {

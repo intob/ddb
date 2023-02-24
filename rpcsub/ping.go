@@ -10,17 +10,10 @@ import (
 )
 
 func SubscribeToPingAndAck(ctx context.Context) {
-	rcvEvents := make(chan *event.Event)
-	_, err := event.Subscribe(&event.Sub{
-		Filter: func(e *event.Event) bool {
-			return e.Topic == event.TOPIC_RPC && e.Rpc.Type == rpc.TYPE_PING
-		},
-		Rcvr: rcvEvents,
+	ev, _ := event.Subscribe(func(e *event.Event) bool {
+		return e.Topic == event.TOPIC_RPC && e.Rpc.Type == rpc.TYPE_PING
 	})
-	if err != nil {
-		panic(fmt.Errorf("failed to subscribe to ping rpc: %w", err))
-	}
-	for e := range rcvEvents {
+	for e := range ev {
 		err := transport.SendRpc(&transport.AddrRpc{
 			Rpc: &rpc.Rpc{
 				Id:   e.Rpc.Id,

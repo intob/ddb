@@ -15,18 +15,14 @@ import (
 )
 
 func SendListAddrRpcToNewContacts(ctx context.Context) {
-	rcv := make(chan *event.Event)
-	event.Subscribe(&event.Sub{
-		Filter: func(e *event.Event) bool {
-			return e.Topic == event.TOPIC_CONTACT_ADDED
-		},
-		Rcvr: rcv,
+	ev, _ := event.Subscribe(func(e *event.Event) bool {
+		return e.Topic == event.TOPIC_CONTACT_ADDED
 	})
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case contactAdded := <-rcv:
+		case contactAdded := <-ev:
 			ListAddr(ctx, contactAdded.Addr)
 		}
 	}
@@ -38,13 +34,8 @@ func ListAddr(ctx context.Context, addr *net.UDPAddr) {
 		fmt.Println("failed to get rand rpc id:", err)
 		return
 	}
-	resp := make(chan *event.Event)
-	event.Subscribe(&event.Sub{
-		Filter: func(e *event.Event) bool {
-			return e.Topic == event.TOPIC_RPC && bytes.Equal(*e.Rpc.Id, *rpcId)
-		},
-		Rcvr: resp,
-		Once: true,
+	ev, _ := event.SubscribeOnce(func(e *event.Event) bool {
+		return e.Topic == event.TOPIC_RPC && bytes.Equal(*e.Rpc.Id, *rpcId)
 	})
 	transport.SendRpc(&transport.AddrRpc{
 		Rpc: &rpc.Rpc{
@@ -55,7 +46,7 @@ func ListAddr(ctx context.Context, addr *net.UDPAddr) {
 	})
 	timeout := time.NewTimer(time.Second)
 	select {
-	case r := <-resp:
+	case r := <-ev:
 		handleListAddrResp(r)
 	case <-timeout.C:
 		fmt.Println("list addr rpc timed out")

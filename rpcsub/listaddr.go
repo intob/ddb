@@ -12,18 +12,11 @@ import (
 )
 
 func SubscribeToListAddrRpc(ctx context.Context) {
-	rcv := make(chan *event.Event)
-	_, err := event.Subscribe(&event.Sub{
-		Filter: func(e *event.Event) bool {
-			return e.Topic == event.TOPIC_RPC &&
-				e.Rpc.Type == rpc.TYPE_LIST_ADDR
-		},
-		Rcvr: rcv,
+	ev, _ := event.Subscribe(func(e *event.Event) bool {
+		return e.Topic == event.TOPIC_RPC &&
+			e.Rpc.Type == rpc.TYPE_LIST_ADDR
 	})
-	if err != nil {
-		panic(fmt.Errorf("failed to subscribe to list addr rpc: %w", err))
-	}
-	for e := range rcv {
+	for e := range ev {
 		fmt.Println("rcvd list addr rpc", e.Rpc.Id)
 		resp := &rpc.ListAddrBody{
 			AddrList: make([]string, contact.Count()-1),

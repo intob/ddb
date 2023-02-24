@@ -12,30 +12,43 @@ const (
 )
 
 var (
-	subs  = make(map[*id.Id]*Sub, 0)
+	subs  = make(map[*id.Id]*sub, 0)
 	mutex = &sync.Mutex{}
 )
 
-type Sub struct {
-	Filter func(e *Event) bool
-	Rcvr   chan<- *Event
-	Once   bool
+type sub struct {
+	filter func(e *Event) bool
+	rcvr   chan *Event
+	once   bool
 }
 
-func Subscribe(s *Sub) (*id.Id, error) {
+func Subscribe(filter func(e *Event) bool) (<-chan *Event, *id.Id) {
+	return subscribe(filter, false)
+}
+
+func SubscribeOnce(filter func(e *Event) bool) (<-chan *Event, *id.Id) {
+	return subscribe(filter, true)
+}
+
+func subscribe(filter func(e *Event) bool, once bool) (<-chan *Event, *id.Id) {
 	id, err := id.Rand(subIdByteLen)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get random sub id: %w", err)
+		panic(fmt.Errorf("failed to get random sub id: %w", err))
+	}
+	sub := &sub{
+		filter: filter,
+		rcvr:   make(chan *Event),
+		once:   once,
 	}
 	mutex.Lock()
-	subs[id] = s
+	subs[id] = sub
 	mutex.Unlock()
-	return id, nil
+	return sub.rcvr, id
 }
 
 func Unsubscribe(id *id.Id) {
 	mutex.Lock()
-	close(subs[id].Rcvr)
+	close(subs[id].rcvr)
 	delete(subs, id)
 	mutex.Unlock()
 }
@@ -43,10 +56,10 @@ func Unsubscribe(id *id.Id) {
 func Publish(event *Event) {
 	mutex.Lock()
 	for id, sub := range subs {
-		if sub.Filter(event) {
-			sub.Rcvr <- event
-			if sub.Once {
-				close(sub.Rcvr)
+		if sub.filter(event) {
+			sub.rcvr <- event
+			if sub.once {
+				close(sub.rcvr)
 				delete(subs, id)
 			}
 		}
@@ -57,7 +70,7 @@ func Publish(event *Event) {
 func UnsubscribeAll() {
 	mutex.Lock()
 	for id, sub := range subs {
-		close(sub.Rcvr)
+		close(sub.rcvr)
 		delete(subs, id)
 	}
 	mutex.Unlock()

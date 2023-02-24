@@ -30,18 +30,11 @@ type LogEntry struct {
 
 func PropagateStoreRpcs(ctx context.Context) {
 	go cleanLog(ctx)
-	rcvEvents := make(chan *event.Event)
-	_, err := event.Subscribe(&event.Sub{
-		Filter: func(e *event.Event) bool {
-			return e.Topic == event.TOPIC_RPC &&
-				e.Rpc.Type == rpc.TYPE_STORE
-		},
-		Rcvr: rcvEvents,
+	events, _ := event.Subscribe(func(e *event.Event) bool {
+		return e.Topic == event.TOPIC_RPC &&
+			e.Rpc.Type == rpc.TYPE_STORE
 	})
-	if err != nil {
-		panic(fmt.Errorf("failed to subscribe to rpcs: %w", err))
-	}
-	for e := range rcvEvents {
+	for e := range events {
 		rpcIdStr := e.Rpc.Id.String()
 		mutex.Lock()
 		if log[rpcIdStr] != nil {

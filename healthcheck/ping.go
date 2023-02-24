@@ -36,14 +36,9 @@ func PingContacts(ctx context.Context) {
 					fmt.Println("failed to generate random id:", err)
 				}
 
-				rcv := make(chan *event.Event)
-				event.Subscribe(&event.Sub{
-					Filter: func(e *event.Event) bool {
-						return e.Topic == event.TOPIC_RPC &&
-							bytes.Equal(*e.Rpc.Id, *rid)
-					},
-					Rcvr: rcv,
-					Once: true,
+				ev, _ := event.SubscribeOnce(func(e *event.Event) bool {
+					return e.Topic == event.TOPIC_RPC &&
+						bytes.Equal(*e.Rpc.Id, *rid)
 				})
 
 				transport.SendRpc(&transport.AddrRpc{
@@ -61,7 +56,7 @@ func PingContacts(ctx context.Context) {
 				case <-timeout.C:
 					contact.Rm(c.Addr.String())
 					fmt.Println("ping timed out, removed contact", c.Addr.String())
-				case <-rcv:
+				case <-ev:
 				}
 			}
 			roundTimeout := time.NewTimer(roundPeriod)

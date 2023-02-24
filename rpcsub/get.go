@@ -12,22 +12,16 @@ import (
 )
 
 func SubscribeToGetRpc(ctx context.Context) {
-	rcvEvents := make(chan *event.Event)
-	_, err := event.Subscribe(&event.Sub{
-		Filter: func(e *event.Event) bool {
-			return e.Topic == event.TOPIC_RPC &&
-				e.Rpc.Type == rpc.TYPE_GET
-		},
-		Rcvr: rcvEvents,
+	ev, _ := event.Subscribe(func(e *event.Event) bool {
+		return e.Topic == event.TOPIC_RPC &&
+			e.Rpc.Type == rpc.TYPE_GET
 	})
-	if err != nil {
-		panic(fmt.Errorf("failed to subscribe to store rpc: %w", err))
-	}
-	for e := range rcvEvents {
+	for e := range ev {
 		fmt.Println("rcvd get rpc", e.Rpc.Id)
 		entry := store.Get(string(e.Rpc.Body))
 		var entryBytes []byte
 		if entry != nil {
+			var err error
 			entryBytes, err = cbor.Marshal(entry)
 			if err != nil {
 				fmt.Println("failed to marshal entry")
