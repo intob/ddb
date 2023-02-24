@@ -91,7 +91,7 @@ func readFromConn(ctx context.Context, conn *net.UDPConn) {
 			}
 			addOrUpdateContact(raddr)
 			event.Publish(&event.Event{
-				Topic: event.TOPIC_RPC,
+				Topic: event.Rpc,
 				Rpc:   r,
 				Addr:  raddr,
 			})
@@ -130,7 +130,7 @@ func addOrUpdateContact(addr *net.UDPAddr) {
 			LastSeen: time.Now(),
 		})
 		event.Publish(&event.Event{
-			Topic: event.TOPIC_CONTACT_ADDED,
+			Topic: event.ContactAdded,
 			Addr:  addr,
 		})
 	} else {

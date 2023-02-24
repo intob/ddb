@@ -13,8 +13,8 @@ import (
 
 func SubscribeToStoreRpc(ctx context.Context) {
 	ev, _ := event.Subscribe(func(e *event.Event) bool {
-		return e.Topic == event.TOPIC_RPC &&
-			e.Rpc.Type == rpc.TYPE_STORE
+		return e.Topic == event.Rpc &&
+			e.Rpc.Type == rpc.Store
 	})
 	for e := range ev {
 		fmt.Println("rcvd store rpc")
@@ -28,7 +28,7 @@ func SubscribeToStoreRpc(ctx context.Context) {
 		err = transport.SendRpc(&transport.AddrRpc{
 			Rpc: &rpc.Rpc{
 				Id:   e.Rpc.Id,
-				Type: rpc.TYPE_ACK,
+				Type: rpc.Ack,
 			},
 			Addr: e.Addr,
 		})

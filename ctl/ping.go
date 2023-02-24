@@ -47,7 +47,7 @@ func init() {
 		err = transport.SendRpc(&transport.AddrRpc{
 			Rpc: &rpc.Rpc{
 				Id:   rpcId,
-				Type: rpc.TYPE_PING,
+				Type: rpc.Ping,
 			},
 			Addr: addr,
 		})
@@ -59,8 +59,8 @@ func init() {
 
 func subscribeToPingAck(rpcId *id.Id) {
 	ev, _ := event.SubscribeOnce(func(e *event.Event) bool {
-		return e.Topic == event.TOPIC_RPC &&
-			e.Rpc.Type == rpc.TYPE_ACK &&
+		return e.Topic == event.Rpc &&
+			e.Rpc.Type == rpc.Ack &&
 			bytes.Equal(*e.Rpc.Id, *rpcId)
 	})
 	go func() {

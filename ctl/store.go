@@ -63,7 +63,7 @@ func init() {
 		err = transport.SendRpc(&transport.AddrRpc{
 			Rpc: &rpc.Rpc{
 				Id:   rpcId,
-				Type: rpc.TYPE_STORE,
+				Type: rpc.Store,
 				Body: rpcBody,
 			},
 			Addr: addr,
@@ -80,8 +80,8 @@ func init() {
 
 func subscribeToStoreAck(rpcId *id.Id, done chan<- struct{}) {
 	ev, _ := event.SubscribeOnce(func(e *event.Event) bool {
-		return e.Topic == event.TOPIC_RPC &&
-			e.Rpc.Type == rpc.TYPE_ACK &&
+		return e.Topic == event.Rpc &&
+			e.Rpc.Type == rpc.Ack &&
 			bytes.Equal(*e.Rpc.Id, *rpcId)
 	})
 	go func() {

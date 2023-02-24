@@ -13,8 +13,8 @@ import (
 
 func SubscribeToGetRpc(ctx context.Context) {
 	ev, _ := event.Subscribe(func(e *event.Event) bool {
-		return e.Topic == event.TOPIC_RPC &&
-			e.Rpc.Type == rpc.TYPE_GET
+		return e.Topic == event.Rpc &&
+			e.Rpc.Type == rpc.Get
 	})
 	for e := range ev {
 		fmt.Println("rcvd get rpc", e.Rpc.Id)
@@ -31,7 +31,7 @@ func SubscribeToGetRpc(ctx context.Context) {
 		err := transport.SendRpc(&transport.AddrRpc{
 			Rpc: &rpc.Rpc{
 				Id:   e.Rpc.Id,
-				Type: rpc.TYPE_ACK,
+				Type: rpc.Ack,
 				Body: entryBytes,
 			},
 			Addr: e.Addr,

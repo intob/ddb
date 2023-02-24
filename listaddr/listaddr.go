@@ -16,7 +16,7 @@ import (
 
 func SendListAddrRpcToNewContacts(ctx context.Context) {
 	ev, _ := event.Subscribe(func(e *event.Event) bool {
-		return e.Topic == event.TOPIC_CONTACT_ADDED
+		return e.Topic == event.ContactAdded
 	})
 	for {
 		select {
@@ -35,12 +35,12 @@ func ListAddr(ctx context.Context, addr *net.UDPAddr) {
 		return
 	}
 	ev, _ := event.SubscribeOnce(func(e *event.Event) bool {
-		return e.Topic == event.TOPIC_RPC && bytes.Equal(*e.Rpc.Id, *rpcId)
+		return e.Topic == event.Rpc && bytes.Equal(*e.Rpc.Id, *rpcId)
 	})
 	transport.SendRpc(&transport.AddrRpc{
 		Rpc: &rpc.Rpc{
 			Id:   rpcId,
-			Type: rpc.TYPE_LIST_ADDR,
+			Type: rpc.ListAddr,
 		},
 		Addr: addr,
 	})

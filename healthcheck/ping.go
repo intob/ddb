@@ -37,14 +37,14 @@ func PingContacts(ctx context.Context) {
 				}
 
 				ev, _ := event.SubscribeOnce(func(e *event.Event) bool {
-					return e.Topic == event.TOPIC_RPC &&
+					return e.Topic == event.Rpc &&
 						bytes.Equal(*e.Rpc.Id, *rid)
 				})
 
 				transport.SendRpc(&transport.AddrRpc{
 					Rpc: &rpc.Rpc{
 						Id:   rid,
-						Type: rpc.TYPE_PING,
+						Type: rpc.Ping,
 					},
 					Addr: c.Addr,
 				})

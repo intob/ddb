@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	TOPIC_RPC           = Topic("RPC")
-	TOPIC_CONTACT_ADDED = Topic("CONTACT_ADDED")
+	Rpc          = Topic("RPC")
+	ContactAdded = Topic("CONTACT_ADDED")
 )
 
 type Topic string
