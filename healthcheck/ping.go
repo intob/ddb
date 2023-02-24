@@ -25,8 +25,7 @@ func PingContacts(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		default:
-			list := contact.RandomizedList()
-			for _, c := range list {
+			for _, c := range contact.GetAll() {
 				// skip if seen recently
 				if c.LastSeen.After(time.Now().Add(-lastSeenThreshold)) {
 					continue
