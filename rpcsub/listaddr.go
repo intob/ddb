@@ -19,7 +19,7 @@ func SubscribeToListAddrRpc(ctx context.Context) {
 	for e := range ev {
 		fmt.Println("rcvd list addr rpc", e.Rpc.Id)
 		resp := &rpc.ListAddrBody{
-			AddrList: make([]string, contact.Count()-1),
+			AddrList: make([]string, contact.Count()-1), // exclude contact's own address
 		}
 		i := 0
 		for _, c := range contact.GetAll() {

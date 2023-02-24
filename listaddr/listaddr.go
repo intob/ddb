@@ -56,7 +56,6 @@ func ListAddr(ctx context.Context, addr *net.UDPAddr) {
 	}
 }
 
-// TODO: handle nil pointer dereference on exit
 func handleListAddrResp(e *event.Event) error {
 	listAddr := &rpc.ListAddrBody{}
 	err := cbor.Unmarshal(e.Rpc.Body, listAddr)

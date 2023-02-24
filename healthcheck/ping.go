@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"math/rand"
 	"time"
 
 	"github.com/intob/ddb/contact"
@@ -13,9 +14,8 @@ import (
 )
 
 const (
-	roundPeriod       = time.Second      // time between each new round
 	contactPeriod     = time.Millisecond // time between each contact in the round
-	lastSeenThreshold = 10 * time.Second // will not ping if last seen recently
+	lastSeenThreshold = time.Second      // will not ping if last seen recently
 	pingTimeout       = time.Second
 )
 
@@ -48,6 +48,7 @@ func PingContacts(ctx context.Context) {
 					},
 					Addr: c.Addr,
 				})
+				timeStart := time.Now()
 
 				timeout := time.NewTimer(pingTimeout)
 				select {
@@ -57,9 +58,13 @@ func PingContacts(ctx context.Context) {
 					contact.Rm(c.Addr.String())
 					fmt.Println("ping timed out, removed contact", c.Addr.String())
 				case <-ev:
+					timeEnd := time.Now()
+					c.RoundTrip = timeEnd.Sub(timeStart)
+					fmt.Println(c.Addr.Port, c.RoundTrip.Microseconds())
 				}
 			}
-			roundTimeout := time.NewTimer(roundPeriod)
+			randTimeout := rand.Intn(int(lastSeenThreshold))
+			roundTimeout := time.NewTimer(lastSeenThreshold + time.Duration(randTimeout))
 			select {
 			case <-ctx.Done():
 				return
