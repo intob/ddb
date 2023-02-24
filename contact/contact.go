@@ -74,15 +74,15 @@ func Count() int {
 }
 
 func Rand(exclude []string) (*Contact, error) {
-	if !haveCandidate(exclude) {
-		return nil, fmt.Errorf("all contacts are excluded")
+	if len(exclude) >= len(contacts) {
+		return nil, fmt.Errorf("all contacts excluded")
 	}
 	var chosen *Contact
 	for chosen == nil {
 		n := rnd.Intn(len(contacts) - 1)
 		i := 0
 		for _, c := range contacts {
-			if n == i {
+			if i == n {
 				if !isExcluded(c.Addr.String(), exclude) {
 					chosen = c
 					break
@@ -94,22 +94,6 @@ func Rand(exclude []string) (*Contact, error) {
 	return chosen, nil
 }
 
-func haveCandidate(exclude []string) bool {
-	for _, c := range contacts {
-		isExcluded := false
-		for _, ex := range exclude {
-			if c.Addr.String() == ex {
-				isExcluded = true
-				break
-			}
-		}
-		if !isExcluded {
-			return true
-		}
-	}
-	return false
-}
-
 func isExcluded(addr string, exclude []string) bool {
 	for _, ex := range exclude {
 		if ex == addr {
@@ -117,12 +101,4 @@ func isExcluded(addr string, exclude []string) bool {
 		}
 	}
 	return false
-}
-
-func RandomizedList() []*Contact {
-	list := GetAll()
-	rnd.Shuffle(len(list), func(i, j int) {
-		list[i], list[j] = list[j], list[i]
-	})
-	return list
 }
