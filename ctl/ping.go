@@ -1,7 +1,6 @@
 package ctl
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -36,11 +35,7 @@ func init() {
 		if err != nil {
 			fmt.Println(err)
 		}
-		rpcId, err := rpc.RandId()
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
+		rpcId := rpc.RandId()
 
 		go subscribeToPingAck(rpcId)
 
@@ -58,18 +53,15 @@ func init() {
 }
 
 func subscribeToPingAck(rpcId *id.Id) {
-	ev, _ := event.SubscribeOnce(func(e *event.Event) bool {
-		return e.Topic == event.Rpc &&
-			e.Rpc.Type == rpc.Ack &&
-			bytes.Equal(*e.Rpc.Id, *rpcId)
-	})
+	ev, _ := event.SubscribeOnce(event.RpcIdFilter(rpcId))
 	go func() {
 		timer := time.NewTimer(time.Second)
 		select {
 		case e := <-ev:
-			fmt.Println("rcvd ping ACK", e.Rpc.Id)
+			detail, _ := e.Detail.(event.RpcDetail)
+			fmt.Println("rcvd ping ack", detail.Rpc.Id)
 		case <-timer.C:
-			fmt.Println("timed out waiting for ping ACK")
+			fmt.Println("timed out waiting for ping ack")
 		}
 	}()
 }

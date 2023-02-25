@@ -14,7 +14,7 @@ import (
 	"github.com/intob/ddb/gossip"
 	"github.com/intob/ddb/healthcheck"
 	"github.com/intob/ddb/listaddr"
-	"github.com/intob/ddb/rpcsub"
+	"github.com/intob/ddb/rpcevent"
 	"github.com/intob/ddb/transport"
 )
 
@@ -47,13 +47,13 @@ func main() {
 	}(cancel)
 
 	go transport.Listen(ctx)
-	go rpcsub.SubscribeToPingAndAck(ctx)
-	go rpcsub.SubscribeToGetRpc(ctx)
-	go rpcsub.SubscribeToStoreRpc(ctx)
-	go rpcsub.SubscribeToListAddrRpc(ctx)
 	go gossip.PropagateStoreRpcs(ctx)
 	go healthcheck.PingContacts(ctx)
 	go listaddr.SendListAddrRpcToNewContacts(ctx)
+	go rpcevent.SubscribeToPingAndAck()
+	go rpcevent.SubscribeToGetRpc()
+	go rpcevent.SubscribeToStoreRpc()
+	go rpcevent.SubscribeToListAddrRpc()
 
 	for _, c := range contact.GetAll() {
 		go listaddr.ListAddr(ctx, c.Addr)

@@ -1,7 +1,6 @@
 package event
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/intob/ddb/id"
@@ -31,15 +30,12 @@ func SubscribeOnce(filter func(e *Event) bool) (<-chan *Event, *id.Id) {
 }
 
 func subscribe(filter func(e *Event) bool, once bool) (<-chan *Event, *id.Id) {
-	id, err := id.Rand(subIdByteLen)
-	if err != nil {
-		panic(fmt.Errorf("failed to get random sub id: %w", err))
-	}
 	sub := &sub{
 		filter: filter,
 		rcvr:   make(chan *Event),
 		once:   once,
 	}
+	id := id.Rand(subIdByteLen)
 	mutex.Lock()
 	subs[id] = sub
 	mutex.Unlock()

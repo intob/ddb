@@ -1,7 +1,6 @@
-package rpcsub
+package rpcevent
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/fxamacker/cbor/v2"
@@ -11,14 +10,12 @@ import (
 	"github.com/intob/ddb/transport"
 )
 
-func SubscribeToGetRpc(ctx context.Context) {
-	ev, _ := event.Subscribe(func(e *event.Event) bool {
-		return e.Topic == event.Rpc &&
-			e.Rpc.Type == rpc.Get
-	})
+func SubscribeToGetRpc() {
+	ev, _ := event.Subscribe(event.RpcTypeFilter(rpc.Get))
 	for e := range ev {
-		fmt.Println("rcvd get rpc", e.Rpc.Id)
-		entry := store.Get(string(e.Rpc.Body))
+		detail, _ := e.Detail.(event.RpcDetail)
+		fmt.Println("rcvd get rpc", detail.Rpc.Id)
+		entry := store.Get(string(detail.Rpc.Body))
 		var entryBytes []byte
 		if entry != nil {
 			var err error
@@ -30,14 +27,14 @@ func SubscribeToGetRpc(ctx context.Context) {
 		}
 		err := transport.SendRpc(&transport.AddrRpc{
 			Rpc: &rpc.Rpc{
-				Id:   e.Rpc.Id,
+				Id:   detail.Rpc.Id,
 				Type: rpc.Ack,
 				Body: entryBytes,
 			},
-			Addr: e.Addr,
+			Addr: detail.Addr,
 		})
 		if err != nil {
-			fmt.Println("failed to send get ACK rpc:", err)
+			fmt.Println("failed to send get ack rpc:", err)
 		}
 	}
 }

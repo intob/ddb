@@ -30,12 +30,10 @@ type LogEntry struct {
 
 func PropagateStoreRpcs(ctx context.Context) {
 	go cleanLog(ctx)
-	events, _ := event.Subscribe(func(e *event.Event) bool {
-		return e.Topic == event.Rpc &&
-			e.Rpc.Type == rpc.Store
-	})
+	events, _ := event.Subscribe(event.RpcTypeFilter(rpc.Store))
 	for e := range events {
-		rpcIdStr := e.Rpc.Id.String()
+		detail, _ := e.Detail.(event.RpcDetail)
+		rpcIdStr := detail.Rpc.Id.String()
 		mutex.Lock()
 		if log[rpcIdStr] != nil {
 			fmt.Println("already seen, won't propagate")
@@ -46,7 +44,7 @@ func PropagateStoreRpcs(ctx context.Context) {
 		mutex.Unlock()
 		// pick r contacts at random, other than the sender
 		contacts := make([]*contact.Contact, 0)
-		exclude := map[string]bool{e.Addr.String(): true}
+		exclude := map[string]bool{detail.Addr.String(): true}
 		for i := 0; i < r; i++ {
 			rnd, err := contact.Rand(exclude)
 			if err != nil {
@@ -58,7 +56,7 @@ func PropagateStoreRpcs(ctx context.Context) {
 		}
 		for _, c := range contacts {
 			err := transport.SendRpc(&transport.AddrRpc{
-				Rpc:  e.Rpc,
+				Rpc:  detail.Rpc,
 				Addr: c.Addr,
 			})
 			if err != nil {

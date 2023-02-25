@@ -73,12 +73,12 @@ func Listen(ctx context.Context) {
 }
 
 func readFromConn(ctx context.Context, conn *net.UDPConn) {
+	buf := make([]byte, buferSize)
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		default:
-			buf := make([]byte, buferSize)
 			conn.SetReadDeadline(time.Now().Add(10 * time.Millisecond))
 			n, raddr, err := conn.ReadFromUDP(buf)
 			if err != nil {
@@ -92,8 +92,10 @@ func readFromConn(ctx context.Context, conn *net.UDPConn) {
 			addOrUpdateContact(raddr)
 			event.Publish(&event.Event{
 				Topic: event.Rpc,
-				Rpc:   r,
-				Addr:  raddr,
+				Detail: event.RpcDetail{
+					Rpc:  r,
+					Addr: raddr,
+				},
 			})
 		}
 	}
@@ -110,6 +112,7 @@ func writeToConn(ctx context.Context, conn *net.UDPConn) {
 				fmt.Println(err)
 				continue
 			}
+
 			_, err = conn.WriteToUDP(b, r.Addr)
 			if err != nil {
 				fmt.Println("failed to write rpc:", err)
@@ -131,7 +134,9 @@ func addOrUpdateContact(addr *net.UDPAddr) {
 		})
 		event.Publish(&event.Event{
 			Topic: event.ContactAdded,
-			Addr:  addr,
+			Detail: event.ContactAddedDetail{
+				Addr: addr,
+			},
 		})
 	} else {
 		c.LastSeen = time.Now()

@@ -9,13 +9,13 @@ import (
 )
 
 type Info struct {
-	Contacts int `json:"contacts"`
+	Contacts []contact.Contact `json:"contacts"`
 }
 
 func init() {
 	http.HandleFunc("/info", func(w http.ResponseWriter, r *http.Request) {
 		i, err := json.MarshalIndent(&Info{
-			Contacts: contact.Count(),
+			Contacts: contact.GetAll(),
 		}, "", "  ")
 		if err != nil {
 			fmt.Println(err)

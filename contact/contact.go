@@ -42,11 +42,12 @@ func Seed(seed int64) {
 }
 
 func Put(c *Contact) {
-	if contacts[c.Addr.String()] != nil {
+	addr := c.Addr.String()
+	if contacts[addr] != nil {
 		return
 	}
 	mutex.Lock()
-	contacts[c.Addr.String()] = c
+	contacts[addr] = c
 	mutex.Unlock()
 }
 
@@ -54,11 +55,11 @@ func Get(addr string) *Contact {
 	return contacts[addr]
 }
 
-func GetAll() []*Contact {
-	list := make([]*Contact, len(contacts))
+func GetAll() []Contact {
+	list := make([]Contact, len(contacts))
 	i := 0
 	for _, c := range contacts {
-		list[i] = c
+		list[i] = *c
 		i++
 	}
 	return list
@@ -96,4 +97,13 @@ func Rand(exclude map[string]bool) (*Contact, error) {
 		}
 	}
 	return chosen, nil
+}
+
+func UpdateRoundTrip(addr string, d time.Duration) {
+	mutex.Lock()
+	c := contacts[addr]
+	if c != nil {
+		c.RoundTrip = d
+	}
+	mutex.Unlock()
 }

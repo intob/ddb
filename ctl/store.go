@@ -1,7 +1,6 @@
 package ctl
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -51,11 +50,7 @@ func init() {
 			fmt.Println(err)
 		}
 
-		rpcId, err := rpc.RandId()
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
+		rpcId := rpc.RandId()
 
 		done := make(chan struct{})
 		go subscribeToStoreAck(rpcId, done)
@@ -79,18 +74,15 @@ func init() {
 }
 
 func subscribeToStoreAck(rpcId *id.Id, done chan<- struct{}) {
-	ev, _ := event.SubscribeOnce(func(e *event.Event) bool {
-		return e.Topic == event.Rpc &&
-			e.Rpc.Type == rpc.Ack &&
-			bytes.Equal(*e.Rpc.Id, *rpcId)
-	})
+	ev, _ := event.SubscribeOnce(event.RpcIdFilter(rpcId))
 	go func() {
 		timer := time.NewTimer(time.Second)
 		select {
 		case e := <-ev:
-			fmt.Println("rcvd store ACK", e.Rpc.Id)
+			detail, _ := e.Detail.(event.RpcDetail)
+			fmt.Println("rcvd store ack", detail.Rpc.Id)
 		case <-timer.C:
-			fmt.Println("timed out waiting for store ACK")
+			fmt.Println("timed out waiting for store ack")
 		}
 		fmt.Println("will close done chan")
 		done <- struct{}{}

@@ -1,7 +1,6 @@
 package ctl
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -46,11 +45,7 @@ func init() {
 			fmt.Println(err)
 		}
 
-		rpcId, err := rpc.RandId()
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
+		rpcId := rpc.RandId()
 
 		resultChan := make(chan *store.Entry)
 		go subscribeToGetAck(rpcId, resultChan)
@@ -85,26 +80,23 @@ func init() {
 }
 
 func subscribeToGetAck(rpcId *id.Id, result chan<- *store.Entry) {
-	ev, _ := event.SubscribeOnce(func(e *event.Event) bool {
-		return e.Topic == event.Rpc &&
-			e.Rpc.Type == rpc.Ack &&
-			bytes.Equal(*e.Rpc.Id, *rpcId)
-	})
+	ev, _ := event.SubscribeOnce(event.RpcIdFilter(rpcId))
 	go func() {
 		timer := time.NewTimer(time.Second)
 		select {
 		case e := <-ev:
-			fmt.Println("rcvd get ACK", e.Rpc.Id)
+			detail, _ := e.Detail.(event.RpcDetail)
+			fmt.Println("rcvd get ack", detail.Rpc.Id)
 			body := &store.Entry{}
-			if e.Rpc.Body != nil {
-				err := cbor.Unmarshal(e.Rpc.Body, body)
+			if detail.Rpc.Body != nil {
+				err := cbor.Unmarshal(detail.Rpc.Body, body)
 				if err != nil {
 					fmt.Println("failed to unmarshal rpc body:", err)
 				}
 				result <- body
 			}
 		case <-timer.C:
-			fmt.Println("timed out waiting for get ACK")
+			fmt.Println("timed out waiting for get ack")
 		}
 		result <- nil
 	}()

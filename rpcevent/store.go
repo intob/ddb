@@ -1,7 +1,6 @@
-package rpcsub
+package rpcevent
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/fxamacker/cbor/v2"
@@ -11,15 +10,14 @@ import (
 	"github.com/intob/ddb/transport"
 )
 
-func SubscribeToStoreRpc(ctx context.Context) {
-	ev, _ := event.Subscribe(func(e *event.Event) bool {
-		return e.Topic == event.Rpc &&
-			e.Rpc.Type == rpc.Store
-	})
+func SubscribeToStoreRpc() {
+	ev, _ := event.Subscribe(event.RpcTypeFilter(rpc.Store))
 	for e := range ev {
+		// type assertion already checked in filter
+		detail, _ := e.Detail.(event.RpcDetail)
 		fmt.Println("rcvd store rpc")
 		b := &rpc.StoreBody{}
-		err := cbor.Unmarshal(e.Rpc.Body, b)
+		err := cbor.Unmarshal(detail.Rpc.Body, b)
 		if err != nil {
 			fmt.Println("failed to unmarshal store rpc body:", err)
 			continue
@@ -27,10 +25,10 @@ func SubscribeToStoreRpc(ctx context.Context) {
 		store.Set(b.Key, &b.Value, b.Modified)
 		err = transport.SendRpc(&transport.AddrRpc{
 			Rpc: &rpc.Rpc{
-				Id:   e.Rpc.Id,
+				Id:   detail.Rpc.Id,
 				Type: rpc.Ack,
 			},
-			Addr: e.Addr,
+			Addr: detail.Addr,
 		})
 		if err != nil {
 			fmt.Println("failed to send store ack rpc:", err)

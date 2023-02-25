@@ -1,7 +1,6 @@
 package listaddr
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"net"
@@ -16,27 +15,26 @@ import (
 
 func SendListAddrRpcToNewContacts(ctx context.Context) {
 	ev, _ := event.Subscribe(func(e *event.Event) bool {
-		return e.Topic == event.ContactAdded
+		if e.Topic != event.ContactAdded {
+			return false
+		}
+		_, ok := e.Detail.(event.ContactAddedDetail)
+		return ok
 	})
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case contactAdded := <-ev:
-			ListAddr(ctx, contactAdded.Addr)
+		case e := <-ev:
+			detail, _ := e.Detail.(event.ContactAddedDetail)
+			ListAddr(ctx, detail.Addr)
 		}
 	}
 }
 
 func ListAddr(ctx context.Context, addr *net.UDPAddr) {
-	rpcId, err := rpc.RandId()
-	if err != nil {
-		fmt.Println("failed to get rand rpc id:", err)
-		return
-	}
-	ev, _ := event.SubscribeOnce(func(e *event.Event) bool {
-		return e.Topic == event.Rpc && bytes.Equal(*e.Rpc.Id, *rpcId)
-	})
+	rpcId := rpc.RandId()
+	ev, _ := event.SubscribeOnce(event.RpcIdFilter(rpcId))
 	transport.SendRpc(&transport.AddrRpc{
 		Rpc: &rpc.Rpc{
 			Id:   rpcId,
@@ -57,8 +55,12 @@ func ListAddr(ctx context.Context, addr *net.UDPAddr) {
 }
 
 func handleListAddrResp(e *event.Event) error {
+	detail, ok := e.Detail.(event.RpcDetail)
+	if !ok {
+		return fmt.Errorf("unexpected type %T in event detail", e.Detail)
+	}
 	listAddr := &rpc.ListAddrBody{}
-	err := cbor.Unmarshal(e.Rpc.Body, listAddr)
+	err := cbor.Unmarshal(detail.Rpc.Body, listAddr)
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal list addr resp body: %w", err)
 	}
