@@ -1,4 +1,4 @@
-package listaddr
+package rpcout
 
 import (
 	"context"

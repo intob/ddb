@@ -12,9 +12,8 @@ import (
 	"github.com/intob/ddb/ctl"
 	"github.com/intob/ddb/event"
 	"github.com/intob/ddb/gossip"
-	"github.com/intob/ddb/healthcheck"
-	"github.com/intob/ddb/listaddr"
-	"github.com/intob/ddb/rpcevent"
+	"github.com/intob/ddb/rpcin"
+	"github.com/intob/ddb/rpcout"
 	"github.com/intob/ddb/transport"
 )
 
@@ -48,15 +47,15 @@ func main() {
 
 	go transport.Listen(ctx)
 	go gossip.PropagateStoreRpcs(ctx)
-	go healthcheck.PingContacts(ctx)
-	go listaddr.SendListAddrRpcToNewContacts(ctx)
-	go rpcevent.SubscribeToPingAndAck()
-	go rpcevent.SubscribeToGetRpc()
-	go rpcevent.SubscribeToStoreRpc()
-	go rpcevent.SubscribeToListAddrRpc()
+	go rpcout.PingContacts(ctx)
+	go rpcout.SendListAddrRpcToNewContacts(ctx)
+	go rpcin.SubscribeToPingAndAck()
+	go rpcin.SubscribeToGetRpc()
+	go rpcin.SubscribeToStoreRpc()
+	go rpcin.SubscribeToListAddrRpc()
 
 	for _, c := range contact.GetAll() {
-		go listaddr.ListAddr(ctx, c.Addr)
+		go rpcout.ListAddr(ctx, c.Addr)
 	}
 
 	go func() {

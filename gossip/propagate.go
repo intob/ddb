@@ -12,9 +12,8 @@ import (
 	"github.com/intob/ddb/transport"
 )
 
-// number of nodes to propagate rpcs to
 const (
-	r                = 2
+	r                = 2 // number of nodes to propagate rpcs to
 	logEntryLifetime = 10 * time.Second
 	cleanLogPeriod   = 10 * time.Second
 )

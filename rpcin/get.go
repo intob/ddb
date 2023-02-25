@@ -1,4 +1,4 @@
-package rpcevent
+package rpcin
 
 import (
 	"fmt"
