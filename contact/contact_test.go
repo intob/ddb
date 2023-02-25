@@ -31,6 +31,7 @@ func TestGetNonExistent(t *testing.T) {
 }
 
 func TestGetExisting(t *testing.T) {
+	contacts = make(map[string]*Contact)
 	addr, _ := net.ResolveUDPAddr("udp", "localhost:1992")
 	Put(&Contact{
 		Addr: addr,
@@ -41,21 +42,23 @@ func TestGetExisting(t *testing.T) {
 }
 
 func TestRandWhenEmpty(t *testing.T) {
-	_, err := Rand(make([]string, 0))
+	contacts = make(map[string]*Contact)
+	_, err := Rand(make(map[string]bool))
 	if err == nil {
 		t.Fatalf("should have returned an error")
 	}
 }
 
 func TestRandAllExcluded(t *testing.T) {
-	excluded := make([]string, 0)
+	contacts = make(map[string]*Contact)
+	excluded := make(map[string]bool)
 	for i := 10; i < 99; i++ {
 		addrStr := fmt.Sprintf("localhost:10%v", i)
 		addr, _ := net.ResolveUDPAddr("udp", addrStr)
 		Put(&Contact{
 			Addr: addr,
 		})
-		excluded = append(excluded, addr.String())
+		excluded[addr.String()] = true
 	}
 	c, err := Rand(excluded)
 	if c != nil || err == nil {
@@ -64,12 +67,13 @@ func TestRandAllExcluded(t *testing.T) {
 }
 
 func TestRandAllButOneExcluded(t *testing.T) {
-	excluded := make([]string, 0)
+	contacts = make(map[string]*Contact)
+	excluded := make(map[string]bool)
 	for i := 10; i < 99; i++ {
 		addrStr := fmt.Sprintf("127.0.0.1:10%v", i)
 		putContact(addrStr)
 		if i != 50 {
-			excluded = append(excluded, addrStr)
+			excluded[addrStr] = true
 		}
 	}
 	c, err := Rand(excluded)
@@ -82,12 +86,13 @@ func TestRandAllButOneExcluded(t *testing.T) {
 }
 
 func BenchmarkRand(b *testing.B) {
-	excluded := make([]string, 0)
+	contacts = make(map[string]*Contact)
+	excluded := make(map[string]bool)
 	for i := 10; i < 999; i++ {
 		addrStr := fmt.Sprintf("127.0.0.1:10%v", i)
 		putContact(addrStr)
 		if i != 50 {
-			excluded = append(excluded, addrStr)
+			excluded[addrStr] = true
 		}
 	}
 	b.StartTimer()

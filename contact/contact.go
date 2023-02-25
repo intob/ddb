@@ -74,8 +74,10 @@ func Count() int {
 	return len(contacts)
 }
 
-// T
-func Rand(exclude []string) (*Contact, error) {
+func Rand(exclude map[string]bool) (*Contact, error) {
+	if len(contacts) == 0 {
+		return nil, fmt.Errorf("no contacts")
+	}
 	if len(exclude) >= len(contacts) {
 		return nil, fmt.Errorf("all contacts excluded")
 	}
@@ -85,7 +87,7 @@ func Rand(exclude []string) (*Contact, error) {
 		i := 0
 		for _, c := range contacts {
 			if i == n {
-				if !isExcluded(c.Addr.String(), exclude) {
+				if !exclude[c.Addr.String()] {
 					chosen = c
 					break
 				}
@@ -94,13 +96,4 @@ func Rand(exclude []string) (*Contact, error) {
 		}
 	}
 	return chosen, nil
-}
-
-func isExcluded(addr string, exclude []string) bool {
-	for _, ex := range exclude {
-		if ex == addr {
-			return true
-		}
-	}
-	return false
 }

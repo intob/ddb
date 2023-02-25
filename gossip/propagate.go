@@ -15,8 +15,8 @@ import (
 // number of nodes to propagate rpcs to
 const (
 	r                = 2
-	logEntryLifetime = time.Second
-	cleanLogPeriod   = time.Second
+	logEntryLifetime = 10 * time.Second
+	cleanLogPeriod   = 10 * time.Second
 )
 
 var (
@@ -45,22 +45,16 @@ func PropagateStoreRpcs(ctx context.Context) {
 		log[rpcIdStr] = &LogEntry{time.Now()}
 		mutex.Unlock()
 		// pick r contacts at random, other than the sender
-		// TODO: don't back-propagate, exclude all previous senders
 		contacts := make([]*contact.Contact, 0)
-		exclude := []string{e.Addr.String()}
-		for {
-			l := len(contacts)
-			if l == r || l == contact.Count()-1 {
-				break
-			}
-			// pick random contact
-			randContact, err := contact.Rand(exclude)
+		exclude := map[string]bool{e.Addr.String(): true}
+		for i := 0; i < r; i++ {
+			rnd, err := contact.Rand(exclude)
 			if err != nil {
 				fmt.Println("failed to pick random contact:", err)
 				break
 			}
-			contacts = append(contacts, randContact)
-			exclude = append(exclude, randContact.Addr.String())
+			contacts = append(contacts, rnd)
+			exclude[rnd.Addr.String()] = true
 		}
 		for _, c := range contacts {
 			err := transport.SendRpc(&transport.AddrRpc{
