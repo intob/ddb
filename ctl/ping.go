@@ -52,7 +52,7 @@ func init() {
 	})
 }
 
-func subscribeToPingAck(rpcId *id.Id) {
+func subscribeToPingAck(rpcId id.Id) {
 	ev, _ := event.SubscribeOnce(event.RpcIdFilter(rpcId))
 	go func() {
 		timer := time.NewTimer(time.Second)

@@ -11,7 +11,7 @@ const (
 )
 
 var (
-	subs  = make(map[*id.Id]*sub, 0)
+	subs  = make(map[id.Id]*sub, 0)
 	mutex = &sync.Mutex{}
 )
 
@@ -21,15 +21,15 @@ type sub struct {
 	once   bool
 }
 
-func Subscribe(filter func(e *Event) bool) (<-chan *Event, *id.Id) {
+func Subscribe(filter func(e *Event) bool) (<-chan *Event, id.Id) {
 	return subscribe(filter, false)
 }
 
-func SubscribeOnce(filter func(e *Event) bool) (<-chan *Event, *id.Id) {
+func SubscribeOnce(filter func(e *Event) bool) (<-chan *Event, id.Id) {
 	return subscribe(filter, true)
 }
 
-func subscribe(filter func(e *Event) bool, once bool) (<-chan *Event, *id.Id) {
+func subscribe(filter func(e *Event) bool, once bool) (<-chan *Event, id.Id) {
 	sub := &sub{
 		filter: filter,
 		rcvr:   make(chan *Event),
@@ -42,7 +42,7 @@ func subscribe(filter func(e *Event) bool, once bool) (<-chan *Event, *id.Id) {
 	return sub.rcvr, id
 }
 
-func Unsubscribe(id *id.Id) {
+func Unsubscribe(id id.Id) {
 	mutex.Lock()
 	close(subs[id].rcvr)
 	delete(subs, id)

@@ -8,6 +8,7 @@ import (
 
 	"github.com/intob/ddb/contact"
 	"github.com/intob/ddb/event"
+	"github.com/intob/ddb/id"
 	"github.com/intob/ddb/rpc"
 	"github.com/intob/ddb/transport"
 )
@@ -19,7 +20,7 @@ const (
 )
 
 var (
-	log   = make(map[string]*LogEntry, 0)
+	log   = make(map[id.Id]*LogEntry, 0)
 	mutex = &sync.Mutex{}
 )
 
@@ -32,14 +33,12 @@ func PropagateStoreRpcs(ctx context.Context) {
 	events, _ := event.Subscribe(event.RpcTypeFilter(rpc.Store))
 	for e := range events {
 		detail, _ := e.Detail.(event.RpcDetail)
-		rpcIdStr := detail.Rpc.Id.String()
 		mutex.Lock()
-		if log[rpcIdStr] != nil {
-			fmt.Println("already seen, won't propagate")
+		if log[detail.Rpc.Id] != nil {
 			mutex.Unlock()
 			continue
 		}
-		log[rpcIdStr] = &LogEntry{time.Now()}
+		log[detail.Rpc.Id] = &LogEntry{time.Now()}
 		mutex.Unlock()
 		// pick r contacts at random, other than the sender
 		contacts := make([]*contact.Contact, 0)

@@ -51,7 +51,7 @@ func SendRpc(addrRpc *AddrRpc) error {
 	if addrRpc.Addr == nil {
 		return fmt.Errorf("rpc addr must not be nil")
 	}
-	if addrRpc.Rpc.Id == nil {
+	if addrRpc.Rpc.Id == "" {
 		return fmt.Errorf("rpc must have an id")
 	}
 	rpcOut <- addrRpc

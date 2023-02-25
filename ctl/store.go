@@ -4,19 +4,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"time"
 
 	"github.com/fxamacker/cbor/v2"
+	"github.com/intob/ddb/contact"
 	"github.com/intob/ddb/event"
 	"github.com/intob/ddb/id"
 	"github.com/intob/ddb/rpc"
+	"github.com/intob/ddb/store"
 	"github.com/intob/ddb/transport"
 )
 
 type StoreReq struct {
-	Addr  string `json:"addr"`
 	Key   string `json:"key"`
 	Value string `json:"value"`
 }
@@ -35,6 +35,8 @@ func init() {
 			return
 		}
 
+		store.Set(storeReq.Key, []byte(storeReq.Value), time.Now())
+
 		rpcBody, err := cbor.Marshal(&rpc.StoreBody{
 			Key:      storeReq.Key,
 			Value:    []byte(storeReq.Value),
@@ -45,9 +47,10 @@ func init() {
 			return
 		}
 
-		addr, err := net.ResolveUDPAddr("udp", storeReq.Addr)
+		c, err := contact.Rand(map[string]bool{})
 		if err != nil {
 			fmt.Println(err)
+			return
 		}
 
 		rpcId := rpc.RandId()
@@ -61,7 +64,7 @@ func init() {
 				Type: rpc.Store,
 				Body: rpcBody,
 			},
-			Addr: addr,
+			Addr: c.Addr,
 		})
 		if err != nil {
 			fmt.Println("failed to send rpc:", err)
@@ -69,11 +72,10 @@ func init() {
 		}
 
 		<-done
-		fmt.Println("store done")
 	})
 }
 
-func subscribeToStoreAck(rpcId *id.Id, done chan<- struct{}) {
+func subscribeToStoreAck(rpcId id.Id, done chan<- struct{}) {
 	ev, _ := event.SubscribeOnce(event.RpcIdFilter(rpcId))
 	go func() {
 		timer := time.NewTimer(time.Second)
@@ -84,7 +86,6 @@ func subscribeToStoreAck(rpcId *id.Id, done chan<- struct{}) {
 		case <-timer.C:
 			fmt.Println("timed out waiting for store ack")
 		}
-		fmt.Println("will close done chan")
 		done <- struct{}{}
 	}()
 }

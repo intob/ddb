@@ -79,7 +79,7 @@ func init() {
 	})
 }
 
-func subscribeToGetAck(rpcId *id.Id, result chan<- *store.Entry) {
+func subscribeToGetAck(rpcId id.Id, result chan<- *store.Entry) {
 	ev, _ := event.SubscribeOnce(event.RpcIdFilter(rpcId))
 	go func() {
 		timer := time.NewTimer(time.Second)

@@ -1,7 +1,6 @@
 package event
 
 import (
-	"bytes"
 	"net"
 
 	"github.com/intob/ddb/id"
@@ -42,7 +41,7 @@ func RpcTypeFilter(typ rpc.RpcType) func(e *Event) bool {
 	}
 }
 
-func RpcIdFilter(id *id.Id) func(e *Event) bool {
+func RpcIdFilter(id id.Id) func(e *Event) bool {
 	return func(e *Event) bool {
 		if e.Topic != Rpc {
 			return false
@@ -51,6 +50,6 @@ func RpcIdFilter(id *id.Id) func(e *Event) bool {
 		if !ok {
 			return false
 		}
-		return bytes.Equal(*detail.Rpc.Id, *id)
+		return detail.Rpc.Id == id
 	}
 }

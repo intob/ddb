@@ -5,10 +5,6 @@ import (
 	"time"
 )
 
-const (
-	keyByteLen = 16
-)
-
 var (
 	store = make(map[string]*Entry)
 	mutex = &sync.Mutex{}
@@ -23,18 +19,18 @@ func Get(key string) *Entry {
 	return store[key]
 }
 
-func Set(key string, value *[]byte, modified time.Time) {
+func Set(key string, value []byte, modified time.Time) {
 	mutex.Lock()
 	defer mutex.Unlock()
 	e := store[key]
 	if e == nil {
 		store[key] = &Entry{
-			Value:    *value,
+			Value:    value,
 			Modified: modified,
 		}
 		return
 	}
-	store[key].Value = *value
+	store[key].Value = value
 	store[key].Modified = modified
 }
 

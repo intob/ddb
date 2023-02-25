@@ -14,7 +14,6 @@ func SubscribeToGetRpc() {
 	ev, _ := event.Subscribe(event.RpcTypeFilter(rpc.Get))
 	for e := range ev {
 		detail, _ := e.Detail.(event.RpcDetail)
-		fmt.Println("rcvd get rpc", detail.Rpc.Id)
 		entry := store.Get(string(detail.Rpc.Body))
 		var entryBytes []byte
 		if entry != nil {

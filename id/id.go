@@ -6,17 +6,13 @@ import (
 	"fmt"
 )
 
-type Id []byte
+type Id string
 
-func Rand(len int) *Id {
-	b := make(Id, len)
+func Rand(len int) Id {
+	b := make([]byte, len)
 	_, err := rand.Read(b)
 	if err != nil {
 		panic(fmt.Errorf("failed to generate random id: %w", err))
 	}
-	return &b
-}
-
-func (id *Id) String() string {
-	return hex.EncodeToString(*id)
+	return Id(hex.EncodeToString(b))
 }
